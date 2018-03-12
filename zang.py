@@ -235,11 +235,9 @@ class GRB(object):
         """
         #Inconsistent prescription used in Gompertz 2014
         self.viscous_time = self.Rdisk0**2 / (3. * self.alpha_disk * self.cs * self.Rdisk0)
-        print self.viscous_time
         #More consistent definition of the viscous time (?)
 #        cs = self.Rdisk0*self.OmegaKep/np.sqrt(2)*(self.R/self.Rdisk0)**1.5
 #        self.viscous_time = self.Rdisk0**2 / (3. * self.alpha_disk * cs * self.Rdisk0)
-        print self.viscous_time
         self.viscous_time_units = "s"
         
     def Eval_Mdot0(self):
