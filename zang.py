@@ -395,7 +395,6 @@ class GRB(object):
 
             # Characteristic radii
             # Light cylinder radius, Eq (5)
-#            r_lc[i] = self.r_lc(Omega[i])
             r_lc[i] = self.R_lc(Omega[i])
             # Alfven radius, Eq (3) + limit to 0.9*r_lc
             r_mag[i] = np.min([0.9*r_lc[i],self.R_mag(Mdot[i])])
@@ -426,10 +425,24 @@ class GRB(object):
             # Magnetar rotation frequency
             Omega[i+1] = Omega[i] + (Ndip[i] + Nacc[i])/self.I*(time[i+1]-time[i]) 
             i = i+1
-        
-        out = {"time":time,"L_tot":Ltot,"L_rad":Lrad,"L_dip":Ldip,"L_prop":Lprop,"Omega":Omega,"N_acc":Nacc[i],"N_dip":Ndip[i],"Mdot":Mdot,"r_mag":r_mag,"r_lc":r_lc,"r_corot":r_corot,"fastness":fastness,"beta":beta}
 
-        return out
+        #Luminosities
+        self.L_tot  = Ltot
+        self.L_rad  = Lrad
+        self.L_dip  = Ldip
+        self.L_prop = Lprop
+
+        #Other quantities for diagnostics
+        self.Omega  = Omega
+        self.N_acc  = Nacc
+        self.N_dip  = Ndip
+        self.Mdot   = Mdot
+        self.r_lc   = r_lc
+        self.r_mag  = r_mag
+        self.r_cor  = r_corot
+        self.fast   = fastness
+        self.beta   = beta
+        
         
     ########################################
     ### definition of the plotting functions
@@ -450,11 +463,10 @@ class GRB(object):
             Y = self.L_tot(time)
             plt.loglog(time,Y,label=r'$L_{tot}$')            
         else:
-            output = self.time_integration(time)
-            plt.loglog(time,output["L_tot"],'r-',linewidth=3.0,label=r'$L_{tot}$')            
-            plt.loglog(time,output["L_rad"],'b--',linewidth=2.0,label=r'$L_{imp}$')
-            plt.loglog(time,output["L_prop"],'g:',label=r'$L_{prop}$')
-            plt.loglog(time,output["L_dip"],'k-.',label=r'$L_{em}$')
+            plt.loglog(time,self.L_tot,'r-',linewidth=3.0,label=r'$L_{tot}$') 
+            plt.loglog(time,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
+            plt.loglog(time,self.L_prop,'g:',label=r'$L_{prop}$')
+            plt.loglog(time,self.L_dip,'k-.',label=r'$L_{em}$')
 
         ############                                                                                                                                                                              
         ### labels                                                                                                                                                                                
@@ -469,9 +481,9 @@ class GRB(object):
         if self.eta_prop != 0:
             ### Plot of radii (magnetospheric, corotation, light-cylinder)
             plt.figure(2)
-            plt.loglog(output["time"],output["r_mag"],label=r'$r_{mag}$')
-            plt.loglog(output["time"],output["r_corot"],label=r'$r_{corot}$')
-            plt.loglog(output["time"],output["r_lc"],label=r'$r_{lc}$')
+            plt.loglog(time,self.r_mag,label=r'$r_{mag}$')
+            plt.loglog(time,self.r_cor,label=r'$r_{corot}$')
+            plt.loglog(time,self.r_lc,label=r'$r_{lc}$')
             ### labels
             plt.legend()
             plt.ylabel(r'radius [cm]')
@@ -481,7 +493,7 @@ class GRB(object):
 
             ### Plot of the beta parameter
             plt.figure(3)
-            plt.loglog(output["time"],output["beta"])
+            plt.loglog(time,self.beta)
             plt.ylabel(r'$\beta$')
             plt.xlabel(r'time [s]')
             
@@ -530,7 +542,7 @@ if __name__=='__main__':
     if GRBname == 'GRB061006prop':
         grb = GRB(**GRB_061006prop)
         time = np.logspace(0,6,200)
+        grb.time_integration(time)
         grb.PlotLuminosity(time)
 
-        
     plt.show()
