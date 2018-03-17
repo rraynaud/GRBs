@@ -11,6 +11,7 @@ __email__ ="jerome.guilet@cea.fr ; raphael.raynaud@cea.fr ; matteo.bugli@cea.fr"
 import os,sys
 import numpy as np
 import matplotlib as mpl
+from scipy.integrate import odeint
 try:
     import magic
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -53,7 +54,8 @@ class GRB(object):
                  cs=1.e7, # sound speed in the disk (100km/s)
                  eta_prop=1,
                  tag='', 
-                 verbose=True):
+                 verbose=True,
+                 time=0):
         """
         Parameters (in cgs units, when not specified otherwise)
         ----------
@@ -160,6 +162,18 @@ class GRB(object):
         self.Eimp = self.L_em0#*self.T0
 
         ######################
+        ### Light curves
+        ######################
+        self.Eval_Omega(time)
+        self.Eval_radii(time)
+        self.Eval_torques(time)
+        self.Eval_diag(time)
+        self.Eval_L_rad(time)
+        self.Eval_L_dip()
+        self.Eval_L_prop(time)
+        self.Eval_L_tot(time)
+
+        ######################
         ### print a summary
         ######################
         if verbose is True:
@@ -233,9 +247,9 @@ class GRB(object):
         """
         Compute the viscous timescale of the disk
         """
-        #Inconsistent prescription used in Gompertz 2014
+        #Inconsistent prescription used in Gompertz 2014...
         self.viscous_time = self.Rdisk0**2 / (3. * self.alpha_disk * self.cs * self.Rdisk0)
-        #More consistent definition of the viscous time (?)
+       #More consistent definition of the viscous time (?)
 #        cs = self.Rdisk0*self.OmegaKep/np.sqrt(2)*(self.R/self.Rdisk0)**1.5
 #        self.viscous_time = self.Rdisk0**2 / (3. * self.alpha_disk * cs * self.Rdisk0)
         self.viscous_time_units = "s"
@@ -287,7 +301,7 @@ class GRB(object):
         self.L_em0 = num/den
         self.L_em0_units = 'ergs/s'
 
-    def R_lc(self,Omega=None):
+    def LC_radius(self,Omega=None):
         """
         Light cylinder radius (for a given NS rotation)
         """
@@ -296,18 +310,25 @@ class GRB(object):
         out = self.lightspeed/Omega
         return out
 
-    def R_mag(self,Mdot=None):
+    def Magnetospheric_radius(self,T=0,Omega=None):
         """
-        Alfven radius (for a given disk accretion rate)
+        Magnetospheric radius 
         """
-        if Mdot is None:
-            Mdot=self.Mdot0
+        if Omega is None:
+            Omega=self.Omega0
+        Mdot = self.Accretion_rate(T)
+        r_lc = self.LC_radius(Omega)
         out = self.mu**(4./7) * (self.gravconst*self.M)**(-1./7) * Mdot**(-2./7)
+        if isinstance(T,np.ndarray):
+            mask = out > 0.999*r_lc
+            out[mask] = 0.999*r_lc[mask]
+        else:
+            out = min(out,0.999*r_lc)
         return out
 
-    def R_corot(self,Omega=None):
+    def Corotation_radius(self,Omega=None):
         """
-        Corotation radius (for a given NS)
+        Corotation radius (for a given NS mass and spin)
         """
         if Omega is None:
             Omega=self.Omega0
@@ -333,170 +354,236 @@ class GRB(object):
         out = 0.6*self.M*self.lightspeed**2*num/den
         return out
         
+    def Accretion_rate(self,T):
+        """
+        Accretion rate on the NS
+        Eq. (13) from Zhang and Mezraros 2001
+        """
+        mdot_floor=1e-10
+        out = self.Mdot0 * np.exp(-T / self.viscous_time)
+        if isinstance(T,np.ndarray):
+            out[out<mdot_floor] = mdot_floor
+        else:
+            out = max(out,mdot_floor)
+        return out
+
+    def Torque_spindown(self,T,Omega):
+        """
+        Dipole spindown torque. Eq (8) of Zhang and Mezraros 2001 
+        """
+        #Gompertz uses the disk's alfven radius in the Bucciantini prescription,
+        #but it should actually be the alfven radius of the NS wind...
+        #r_lc  = self.LC_radius(Omega)
+        #r_mag = self.Magnetospheric_radius(T,Omega)
+        ##Eq (2) of Bucciantini et al 2006
+        #out = - 2./3. * self.mu**2 * Omega**3 / self.lightspeed**3 * (r_lc/r_mag)**3
+        #Standard dipole spindown, no wind or disk
+        out = - 1./6. * self.mu**2 * Omega**3 / self.lightspeed**3
+        return out
+
+    def Torque_accretion(self,T,Omega):
+        """
+        Accretion torque, taking into account the propeller model
+        Eq (6-7) of Gompertz et al. 2014
+        """
+        Mdot=self.Accretion_rate(T)
+
+        r_lc = self.LC_radius(Omega)
+        r_mag = self.Magnetospheric_radius(T,Omega)
+        r_corot = self.Corotation_radius(Omega)
+
+        Ndip = self.Torque_spindown(T,Omega)
+
+        fastness = (r_mag / r_corot)**1.5
+        #T/|W| parameter
+        beta = self.E_rot(Omega)/abs(self.E_bind())
+        out = (1. - fastness) * (self.gravconst * self.M * r_mag)**0.5 * Mdot
+        if isinstance(T,np.ndarray):
+            out[r_mag<=self.R] = ((1. - Omega/self.OmegaKep) * (self.gravconst * self.M * r_mag)**0.5 * Mdot)[r_mag<=self.R]
+            #Check for inhibition by bar-mode instability
+            out[beta>0.27]=-Ndip[beta>0.27]
+            #out[beta>0.27]=0.             #Gompertz prescription
+            #out[r_mag>r_lc]=0.
+        else:
+            if (r_mag <= self.R): 
+                out = (1. - Omega/self.OmegaKep) * (self.gravconst * self.M * r_mag)**0.5 * Mdot
+            if (beta>0.27):
+                out = -Ndip
+            #    out = 0.           #Gompertz prescription
+            #if (r_mag>r_lc):
+            #    out = 0.
+        return out
+
+    def Omega_dot(self,Omega,T):
+        """
+        Time derivative of the NS spin used in the propeller model
+        """
+        Mdot = self.Accretion_rate(T)
+
+        r_lc = self.LC_radius(Omega)
+        r_mag = self.Magnetospheric_radius(T,Omega)
+        r_corot = self.Corotation_radius(Omega)
+
+        Ndip = self.Torque_spindown(T,Omega)
+        Nacc = self.Torque_accretion(T,Omega)
+
+        #Check for inhibition by bar-mode instability
+        beta = self.E_rot(Omega)/abs(self.E_bind())
+        if (beta>0.27):
+            Nacc=0
+
+        return (Ndip + Nacc)/self.I
+
+    def Eval_Omega(self,T):
+        """
+        Propeller model from Gompertz et al. 2014
+        """
+        
+        #Time integration with LSODA from FORTRAN library ODEPACK
+        Omega=odeint(self.Omega_dot,self.Omega0,T)[:,0]
+        self.Omega  = Omega
+        
     ##################################################################################################################
-    ### Analytical lightcurve definitions (only for pure dipole, numerical time integration necessary for propeller)
+    ### Lightcurve definitions (contribution from dipole, accretion + propeller, radiative losses)
     ##################################################################################################################
-    def L_tot(self,T):
+    def Eval_L_tot(self,T):
         """
         Luminosity function 
         sum of the different contributions
         eq(1)
         """
-        return self.L_em(T) + self.L_rad(T)
+        Omega = self.Omega
+        self.L_tot = self.L_dip + self.L_prop + self.L_rad
 
-    def L_rad(self,T):
+    def Eval_L_rad(self,T):
         """
         Loss function
         Limp * T**(-alpha)
         """
-        out = self.Eimp * (T/self.T0)**(-self.alpha)
-
-        return out
+        self.L_rad = self.Eimp * (T/self.T0)**(-self.alpha)
         
+    def Eval_L_dip(self):
+        """
+        Dipole spindown luminosity for a generic spin evolution
+        """
+        #Inconsistent prescription in Gompertz 
+        #(when modified spindown is used, Bucciantini 2006)
+        #self.L_dip = self.eta_dip * 1./6. * self.mu**2 * self.Omega**4 / self.lightspeed**3
+        self.L_dip = -self.eta_dip * self.N_dip * self.Omega
+
+    def Eval_L_prop(self,T):
+        """
+        Propeller Luminosity
+        """
+        if (self.eta_prop > 0): 
+            Omega=self.Omega
+            Mdot=self.Accretion_rate(T)
+            r_mag=self.r_mag
+            Nacc=self.N_acc
+            out = self.eta_prop * (- Nacc*Omega - self.gravconst*self.M*Mdot/r_mag )
+            out[out<0.] = 0.
+            self.L_prop = out
+        else:
+            self.L_prop = 0. * T
+    
     def L_em(self,T):
         """
         Source function due to dipole radiation
         eq. (7) of Zhang & Mezraros (2001)
         """
-        out = self.L_em0/(1.+T/self.T_em)**2
+        out = self.eta_dip*self.L_em0/(1.+T/self.T_em)**2
 
         return out
     
-    
+    ##################################################################################################################
+    ### Derived quantities used as diagnostic (characteristic radii, torques, etc.) 
+    ### Loaded as class members
+    ################################################################################################################## 
+
+    def Eval_radii(self,T):
+        """
+        Compute all the characteristic radii
+        """
+        Omega=self.Omega
+        self.r_lc  = self.LC_radius(Omega)
+        self.r_mag = self.Magnetospheric_radius(T,Omega) 
+        self.r_cor = self.Corotation_radius(Omega)
+
+    def Eval_torques(self,T):
+        """
+        Compute the various torques
+        """
+        Omega=self.Omega
+        self.N_dip = self.Torque_spindown(T,Omega)
+        self.N_acc = self.Torque_accretion(T,Omega)
+
+    def Eval_diag(self,T):
+        """
+        Compute various derived quantities
+        """
+        Omega = self.Omega
+        self.Mdot = self.Accretion_rate(T)
+        self.fast = (self.r_mag / self.r_cor)**1.5
+        self.beta = self.E_rot(Omega)/abs(self.E_bind())
+
+    ##################################################################################################################
     ##################################################################################################################
     ### Numerical time integration (necessary for propeller)                                                                               
     ################################################################################################################## 
-    def time_integration(self,time):
-        """
-        Propeller model from Gompertz et al. 2014
-        """
-        
-        Lrad     = self.L_rad(time)
-        Ltot     = time*0.
-        Ldip     = time*0.
-        Lprop    = time*0.
-        Nacc     = time*0.
-        Ndip     = time*0.
-        Omega    = time*0.
-        Mdot     = time*0.
-        r_mag    = time*0.
-        r_lc     = time*0.
-        r_corot  = time*0.
-        fastness = time*0.
-        beta     = time*0.
-        
-        i=0
-        Omega[0] = self.Omega0
-        # do the time integration
-        while (i<len(time)-1):
 
-            #Accretion rate on the NS, Eq (13)
-            Mdot[i] = max([ 1.0e-10, self.Mdot0 * np.exp(-time[i]/self.viscous_time) ]);
 
-            # Characteristic radii
-            # Light cylinder radius, Eq (5)
-            r_lc[i] = self.R_lc(Omega[i])
-            # Alfven radius, Eq (3) + limit to 0.9*r_lc
-            r_mag[i] = np.min([0.9*r_lc[i],self.R_mag(Mdot[i])])
-            # Corotation radius, Eq (4)
-            r_corot[i] = self.R_corot(Omega[i])
-
-            # Dipole spindown torque. Eq (8) (Eq (2) of Bucciantini et al 2006)
-            Ndip[i] = - 2./3. * self.mu**2 * Omega[i]**3 / self.lightspeed**3 * (r_lc[i]/r_mag[i])**3
-            # Propeller torque. Eq (6-7)
-            # Eq (6.5)
-            fastness[i] = (r_mag[i] / r_corot[i])**1.5
-            if (r_mag[i] > self.R):
-                Nacc[i] = (1. - fastness[i]) * (self.gravconst * self.M * r_mag[i])**0.5 * Mdot[i]
-            else:
-                Nacc[i] = (1. - Omega[i]/self.OmegaKep) * (self.gravconst * self.M * r_mag[i])**0.5 * Mdot[i]
-
-            #Check for inhibition by bar-mode instability
-            beta[i] = self.E_rot(Omega[i])/abs(self.E_bind())
-            if (beta[i]>0.27):
-                Nacc[i]=0
-
-            # Luminosities
-            #Eq (11), maybe a factor of 2 is missing to account for initial E_kin of the gas (Virial theorem)
-            Lprop[i] = self.eta_prop * max([0., - Nacc[i]*Omega[i] - self.gravconst*self.M*Mdot[i]/r_mag[i] ])
-            #Eq (14), not consistent with the torque Ndip
-            Ldip[i] = self.eta_dip * 1./6. * self.mu**2 * Omega[i]**4 / self.lightspeed**3
-            Ltot[i] = Lrad[i] + Lprop[i] + Ldip[i]
-            # Magnetar rotation frequency
-            Omega[i+1] = Omega[i] + (Ndip[i] + Nacc[i])/self.I*(time[i+1]-time[i]) 
-            i = i+1
-
-        #Luminosities
-        self.L_tot  = Ltot
-        self.L_rad  = Lrad
-        self.L_dip  = Ldip
-        self.L_prop = Lprop
-
-        #Other quantities for diagnostics
-        self.Omega  = Omega
-        self.N_acc  = Nacc
-        self.N_dip  = Ndip
-        self.Mdot   = Mdot
-        self.r_lc   = r_lc
-        self.r_mag  = r_mag
-        self.r_cor  = r_corot
-        self.fast   = fastness
-        self.beta   = beta
-        
-        
     ########################################
     ### definition of the plotting functions
     ########################################
     
-    def PlotLuminosity(self,time):
+    def PlotLuminosity(self,T):
         """
-        plot lightcurve as a function of time
-
+        Plot lightcurves as a function of time
         """
-        plt.figure()
+        fig,ax = plt.subplots()
 
-        if self.eta_prop == 0.:
-            Y = self.L_rad(time)
-            plt.loglog(time,Y,ls=':',label=r'$L_{imp}$')
-            Y = self.L_em(time)
-            plt.loglog(time,Y,ls='--',label=r'$L_{em}$')
-            Y = self.L_tot(time)
-            plt.loglog(time,Y,label=r'$L_{tot}$')            
-        else:
-            plt.loglog(time,self.L_tot,'r-',linewidth=3.0,label=r'$L_{tot}$') 
-            plt.loglog(time,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
-            plt.loglog(time,self.L_prop,'g:',label=r'$L_{prop}$')
-            plt.loglog(time,self.L_dip,'k-.',label=r'$L_{em}$')
+        ax.loglog(T,self.L_tot,'r-',linewidth=3.0,label=r'$L_{tot}$') 
+        ax.loglog(T,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
+        ax.loglog(T,self.L_dip,'k-.',label=r'$L_{dip}$')
+#        ax.loglog(T,self.L_em(T),'y-.',label=r'$L_{em}$')
+        if self.eta_prop > 0:
+            ax.loglog(T,self.L_prop,'g:',label=r'$L_{prop}$')
 
-        ############                                                                                                                                                                              
-        ### labels                                                                                                                                                                                
         ############
-        plt.legend()
-        plt.ylabel(r'Luminosity [erg/s]')
-        plt.xlabel(r'time [s]')
-        plt.xlim(1.,1e5)
-        plt.ylim(1e42,1e52)
+        ### labels
+        ############
+        ax.legend()
+        ax.set_ylabel(r'Luminosity [erg/s]')
+        ax.set_xlabel(r'time [s]')
+        ax.set(xlim=[1.,1e5],ylim=[1e42,1e52])
 
+    def PlotRadii(self,T):
+        """
+        Plot characteristic radii as a function of time
+        """
+        fig,ax = plt.subplots()
         
-        if self.eta_prop != 0:
-            ### Plot of radii (magnetospheric, corotation, light-cylinder)
-            plt.figure(2)
-            plt.loglog(time,self.r_mag,label=r'$r_{mag}$')
-            plt.loglog(time,self.r_cor,label=r'$r_{corot}$')
-            plt.loglog(time,self.r_lc,label=r'$r_{lc}$')
-            ### labels
-            plt.legend()
-            plt.ylabel(r'radius [cm]')
-            plt.xlabel(r'time [s]')
-            plt.xlim(1.,1e5)
-            plt.ylim(1e6,1e9)
+        ### Plot of radii (magnetospheric, corotation, light-cylinder)
+        ax.loglog(T,self.r_cor,label=r'$r_{corot}$')
+        ax.loglog(T,self.r_lc,label=r'$r_{lc}$')
+        if self.eta_prop > 0:
+            ax.loglog(T,self.r_mag,label=r'$r_{mag}$')
 
-            ### Plot of the beta parameter
-            plt.figure(3)
-            plt.loglog(time,self.beta)
-            plt.ylabel(r'$\beta$')
-            plt.xlabel(r'time [s]')
-            
+        ############
+        ### labels
+        ############
+        ax.legend()
+        ax.set_ylabel(r'radius [cm]')
+        ax.set_xlabel(r'time [s]')
+        ax.set(xlim=[1.,1e5],ylim=[1e6,1e9])
+
+        ### Plot of the beta parameter
+        #ax.figure(3)
+        #ax.loglog(T,self.beta)
+        #ax.ylabel(r'$\beta$')
+        #ax.xlabel(r'time [s]')
+
+    
         ### vlines
         #plt.axvline(self.T_em,label=r'$T_{em}$',ls='--',color='gray')
         #plt.axvline(self.T0,label=r'$T_0$',ls='-',color='gray')
@@ -508,6 +595,8 @@ class GRB(object):
 if __name__=='__main__':
     plt.close('all')
 
+    #Time array
+    time = np.logspace(0,6,200)
 
     ## modelling of GRB 061006 with dipole + power law by Gompertz et al 2013
     GRB_061006 = {}
@@ -515,8 +604,10 @@ if __name__=='__main__':
     GRB_061006['P'] = 24.2e-3
     GRB_061006['B'] = 14.1e15
     GRB_061006['alpha'] = 3.24
+    GRB_061006['Mdisk']=0.
     GRB_061006['eta_dip']=1.
     GRB_061006['eta_prop']=0.
+    GRB_061006['time']=time
 
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
@@ -528,21 +619,23 @@ if __name__=='__main__':
     GRB_061006prop['Rdisk']=400.e5
     GRB_061006prop['eta_dip']=0.05
     GRB_061006prop['eta_prop']=0.4
+    GRB_061006prop['time']=time
 
 
+#    GRBname = 'GRB061006'
     GRBname = 'GRB061006prop'
 
     if GRBname == 'GRB061006':
         grb = GRB(**GRB_061006)
-        time = np.logspace(0,6,200)
         grb.PlotLuminosity(time)
-        plt.xlim(0.3,3e5)
-        plt.ylim(3e43,2e50)
+        grb.PlotRadii(time)
+#        plt.xlim(0.3,3e5)
+#        plt.ylim(3e43,2e50)
 
     if GRBname == 'GRB061006prop':
         grb = GRB(**GRB_061006prop)
-        time = np.logspace(0,6,200)
-        grb.time_integration(time)
         grb.PlotLuminosity(time)
+        grb.PlotRadii(time)
 
     plt.show()
+            
