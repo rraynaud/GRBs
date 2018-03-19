@@ -545,7 +545,7 @@ class GRB(object):
         ax.loglog(T,self.L_tot,'r-',linewidth=3.0,label=r'$L_{tot}$') 
         ax.loglog(T,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
         ax.loglog(T,self.L_dip,'k-.',label=r'$L_{dip}$')
-#        ax.loglog(T,self.L_em(T),'y-.',label=r'$L_{em}$')
+        #ax.loglog(T,self.L_em(T),'y-.',label=r'$L_{em}$')
         if self.eta_prop > 0:
             ax.loglog(T,self.L_prop,'g:',label=r'$L_{prop}$')
 
@@ -593,7 +593,6 @@ class GRB(object):
         
     
 if __name__=='__main__':
-    plt.close('all')
 
     #Time array
     time = np.logspace(0,6,200)
@@ -629,8 +628,6 @@ if __name__=='__main__':
         grb = GRB(**GRB_061006)
         grb.PlotLuminosity(time)
         grb.PlotRadii(time)
-#        plt.xlim(0.3,3e5)
-#        plt.ylim(3e43,2e50)
 
     if GRBname == 'GRB061006prop':
         grb = GRB(**GRB_061006prop)
@@ -638,4 +635,3 @@ if __name__=='__main__':
         grb.PlotRadii(time)
 
     plt.show()
-            
