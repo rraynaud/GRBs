@@ -14,7 +14,6 @@ import matplotlib as mpl
 from scipy.integrate import odeint
 from astropy.io import fits
 from astropy.table import Table
-import inspect
 try:
     import magic
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -103,7 +102,14 @@ class GRB(object):
  
         """
         super(GRB, self).__init__()
-
+        ############################
+        ### save control parameters
+        ############################
+        self.parameters = locals()
+        del self.parameters['time']
+        del self.parameters['verbose']
+        del self.parameters['__class__']
+        del self.parameters['self']
         ###########################
         ### astrophysical constants
         ###########################
@@ -113,7 +119,9 @@ class GRB(object):
         self.gravconst = 6.67259e-8 # cm^3 g^-1 s^-2
 
         ###########################################
-        ### input : set inputs and their dimensions
+        ## input : set inputs and their dimensions
+        ## NB: ALTERNATIVE use self.parameters and
+        ## define a dictionnary to store the units
         ###########################################
         self.eta_dip = eta_dip
         self.eta_dip_units = ''
@@ -672,57 +680,44 @@ class GRB(object):
         ### hlines
         #plt.axhline(self.L_em0,label=r'$L_{em,0}$',ls='--',color='gray')
 
-    def WriteToFist(self,
-                    outfile='out',
-                    overwrite=True):
+    def WriteTable(self,
+                   filename='out.fits',
+                   outputs = ('time','L_tot'),
+                   format='fits',
+                   overwrite=True,
+                   **kwargs):
         """
-        write an output into a .FITS file
+        write some outputs as columns in a file 
 
         Parameter:
         ----------
 
-        outfile : string
-                "path/filename" (without extension)
+        outputs : tuple of string
+                attributes to write in a column
+
+        format : string
+                astropy supported data format
 
         overwrite : boolean
                 forces to overwrite an existing file
 
+        **kwargs : 
+                other astropy.Table.write() 
+                keyword arguments
+
         """
-        ###########################
-        ### choosing the output
-        ###########################
-        outputs = ('time','L_tot')
-
-        #######################################
-        ## getting the input parameters
-        #######################################
-        ## for the moment,
-        ## the difference between some inputs
-        ## and attributes (like P/P0)
-        ## complicates a bit the task
-        ## (need to use inspect module)
-        ## consequence : "*_units" missing
-        #######################################
-        params = dict(inspect.signature(self.__init__).parameters)
-        del params['verbose']
-        del params['time']
-        ## workaround
-        INPUTS = {}
-        for aparam in params.values():
-            key,val = str(aparam).split("=",1)
-            INPUTS[key] = val
-
         ##########################################
         ## A - short way
         ##
         ## input parameters treated as metadatas
         ## but write a file without a 'primaryHDU'
+        ## still missing units
         ##########################################
         datas = [getattr(self,name) for name in outputs]
-        table = Table(datas, names=outputs, meta=INPUTS)
-        table.write('%s.fits'%outfile,
-                    format='fits',
-                    overwrite=overwrite)
+        table = Table(datas, names=outputs, meta=self.parameters)
+        table.write(filename,
+                    format=format,
+                    overwrite=overwrite,**kwargs)
 
         # #######################
         # ## B - long way
@@ -779,7 +774,6 @@ if __name__=='__main__':
     GRB_061006prop['eta_prop']=0.4
     GRB_061006prop['time']=time
 
-
     #GRBname = 'GRB061006'
     GRBname = 'GRB061006prop'
 
@@ -797,6 +791,6 @@ if __name__=='__main__':
 
         grb.PlotRadii(time)
 
-        grb.WriteToFist()
+        grb.WriteTable()
 
     plt.show()
