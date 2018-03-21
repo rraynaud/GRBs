@@ -692,8 +692,11 @@ class GRB(object):
         Parameter:
         ----------
 
+        filename : string
+                like 'path/filename.ext'
+
         outputs : tuple of string
-                attributes to write in a column
+                attributes to write in different columns
 
         format : string
                 astropy supported data format
@@ -724,10 +727,7 @@ class GRB(object):
         # #######################
         # ## writing FITS headers
         # #######################
-        # hdr = fits.Header()
-        # for aparam in params.values():
-        #     key,val = str(aparam).split("=",1)
-        #     hdr[key] = val
+        # hdr = fits.Header(self.parameters)
 
         # ###################################
         # ## creating columns
