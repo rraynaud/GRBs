@@ -12,7 +12,7 @@ import os,sys
 import numpy as np
 import matplotlib as mpl
 from scipy.integrate import odeint
-from astropy.io import fits
+#from astropy.io import fits
 from astropy.table import Table
 try:
     import magic
@@ -56,6 +56,9 @@ class GRB(object):
                  alpha_disk=0.1, # disk viscosity parameter
                  cs=1.e7, # sound speed in the disk (100km/s)
                  eta_prop=1,
+                 EoS_Mtov=2.18, # Msun
+                 EoS_alpha=0.0766,
+                 EoS_beta=-2.738,
                  tag='notag',
                  verbose=True):
         """
@@ -93,6 +96,16 @@ class GRB(object):
 
         time : array
                 time integration domain
+
+        EoS_Mtov : float
+                maximum mass of a NS with zero spin
+
+        EoS_alpha : float
+                phenomenological parameter used
+                to compute the NS maximum mass
+
+        EoS_beta : float
+                similar to EoS_alpha
 
         tag : string
 
@@ -152,6 +165,12 @@ class GRB(object):
         self.tag = tag
         self.time = time
         self.time_units = 's'
+        self.EoS_Mtov = EoS_Mtov * self.Msun
+        self.EoS_Mtov_units = 'g'
+        self.EoS_alpha = EoS_alpha
+        self.EoS_alpha_units = ''
+        self.EoS_beta = EoS_beta
+        self.EoS_beta_units = ''
         ##################
         ### temporary fix
         ##################
@@ -170,7 +189,7 @@ class GRB(object):
         self.Eval_OmegaKep()
         self.Eval_viscous_time()
         self.Eval_Mdot0()
-        
+        self.Eval_critical_angular_velocity()
         ######################
         ### fine tuning
         ######################
@@ -430,6 +449,13 @@ class GRB(object):
         ## Standard dipole spindown, no wind or disk
         ############################################
         out = - 1./6. * self.mu**2 * Omega**3 / self.lightspeed**3
+
+        #########################
+        ## check NS stability
+        #########################
+        where_NS_is_unstable = Omega < self.Omega_c
+        out[where_NS_is_unstable] = 0.
+
         return out
 
     def Torque_accretion(self,T,Omega):
@@ -497,6 +523,27 @@ class GRB(object):
         ## Time integration with LSODA from FORTRAN library ODEPACK
         Omega=odeint(self.Omega_dot,self.Omega0,T)[:,0]
         self.Omega = Omega
+
+    def Eval_critical_angular_velocity(self):
+        """
+        Sun, Zhang & Gao (2017)
+        eq. (25)
+
+        NS collapse for Omega < Omega_c (P>Pc)
+
+        Rem: assume constant NS mass
+
+        """
+        num = self.M - self.EoS_Mtov
+
+        if num<0:
+            ## then NS always stable
+            self.Omega_c = -1.
+
+        else:
+            den = self.EoS_alpha * self.EoS_Mtov
+            Pc = (num/den)**(1./self.EoS_beta)
+            self.Omega_c = 2*np.pi/Pc
         
     ############################################
     ### Lightcurve definitions
@@ -538,6 +585,7 @@ class GRB(object):
         """
         Propeller Luminosity
         """
+        ## check not necessary ?
         if (self.eta_prop > 0): 
             Omega=self.Omega
             Mdot=self.Accretion_rate(T)
@@ -791,6 +839,6 @@ if __name__=='__main__':
 
         grb.PlotRadii(time)
 
-        grb.WriteTable()
+        #grb.WriteTable()
 
     plt.show()
