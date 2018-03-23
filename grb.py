@@ -14,6 +14,7 @@ import matplotlib as mpl
 from scipy.integrate import odeint
 #from astropy.io import fits
 from astropy.table import Table
+import warnings
 try:
     import magic
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -454,7 +455,9 @@ class GRB(object):
         ## check NS stability
         #########################
         where_NS_is_unstable = Omega < self.Omega_c
-        out[where_NS_is_unstable] = 0.
+        if np.any(where_NS_is_unstable):
+            out[where_NS_is_unstable] = 0.
+            warnings.warn('NS collapsed')
 
         return out
 
