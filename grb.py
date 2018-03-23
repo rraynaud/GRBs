@@ -469,32 +469,27 @@ class GRB(object):
         """
         Mdot=self.Accretion_rate(T)
 
+        ## Warning :
+        ## radius of different types (array & float)
         r_lc = self.LC_radius(Omega)
         r_mag = self.Magnetospheric_radius(T,Omega)
         r_corot = self.Corotation_radius(Omega)
 
-        Ndip = self.Torque_spindown(T,Omega)
-
         fastness = (r_mag / r_corot)**1.5
-        ## T/|W| parameter
-        beta = self.E_rot(Omega)/abs(self.E_bind())
+
+        ## Eq. (6)
         out = (1. - fastness) * (self.gravconst * self.M * r_mag)**0.5 * Mdot
 
-        ## COMMENT below: probably simpler to always work with array for the time
-        if isinstance(T,np.ndarray):
-            out[r_mag<=self.R] = ((1. - Omega/self.OmegaKep) * (self.gravconst * self.M * r_mag)**0.5 * Mdot)[r_mag<=self.R]
-            #Check for inhibition by bar-mode instability
-            out[beta>0.27]=-Ndip[beta>0.27]
-            #out[beta>0.27]=0.             #Gompertz prescription
-            #out[r_mag>r_lc]=0.
-        else:
-            if (r_mag <= self.R): 
-                out = (1. - Omega/self.OmegaKep) * (self.gravconst * self.M * r_mag)**0.5 * Mdot
-            if (beta>0.27):
-                out = -Ndip
-            #    out = 0.           #Gompertz prescription
-            #if (r_mag>r_lc):
-            #    out = 0.
+        ## Eq. (7)
+        out[r_mag<=self.R] = ((1. - Omega/self.OmegaKep) * (self.gravconst * self.M * r_mag)**0.5 * Mdot)[r_mag<=self.R]
+
+        ###############################################
+        ## Check for inhibition by bar-mode instability
+        ## with beta = T/|W| parameter (Gompertz 2014)
+        ###############################################
+        beta = self.E_rot(Omega)/abs(self.E_bind())
+        out[beta>0.27] = 0.
+
         return out
 
     def Omega_dot(self,Omega,T):
@@ -510,11 +505,6 @@ class GRB(object):
 
         Ndip = self.Torque_spindown(T,Omega)
         Nacc = self.Torque_accretion(T,Omega)
-
-        # Check for inhibition by bar-mode instability
-        beta = self.E_rot(Omega)/abs(self.E_bind())
-        if (beta>0.27):
-            Nacc=0
 
         return (Ndip + Nacc)/self.I
 
