@@ -48,12 +48,12 @@ class GRB(object):
                  t_num=200,
                  NS_B=1e15,
                  NS_mass=1.4,
+                 NS_radius=1e6,
                  eta_dip=1,
                  T0=10,
                  Eimp=1,
                  alpha=0,
                  P=1e-3,
-                 R=1e6,
                  Mdisk=0.1,
                  Rdisk=500.0e5, # 500 km
                  alpha_disk=0.1, # disk viscosity parameter
@@ -80,7 +80,7 @@ class GRB(object):
         NS_mass : float
                 magnetar mass (in units of solar mass)
 
-        R : float
+        NS_radius : float
                 magnetar radius
 
         eta_dip : float
@@ -160,8 +160,8 @@ class GRB(object):
         self.P0_units = 's'
         self.NS_mass = NS_mass * self.Msun
         self.NS_mass_units = 'g'
-        self.R = R
-        self.R_units = 'cm'
+        self.NS_radius = NS_radius
+        self.NS_radius_units = 'cm'
         self.Mdisk0 = Mdisk * self.Msun
         self.Mdisk0_units = 'g'
         self.Rdisk0 = Rdisk
@@ -225,7 +225,7 @@ class GRB(object):
     ##########################################################
     def Info(self):
         """print a summary"""
-        control_param = ('NS_B','P0','R','NS_mass','alpha','Eimp','T0',
+        control_param = ('NS_B','P0','NS_radius','NS_mass','alpha','Eimp','T0',
                          'Mdisk0','Rdisk0','alpha_disk','cs',
                          'eta_dip','eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
@@ -269,14 +269,14 @@ class GRB(object):
         ### Gompertz (2014)
         norm = 0.35
         #################################
-        self.I = norm * self.NS_mass*self.R**2
+        self.I = norm * self.NS_mass*self.NS_radius**2
         self.I_units = 'g cm^2'
 
     def Eval_magnetic_moment(self):
         """
         compute the magnetar magnetic moment
         """
-        self.mu = self.NS_B * self.R ** 3
+        self.mu = self.NS_B * self.NS_radius**3
         self.mu_units = "G cm^3"
 
     def Eval_OmegaKep(self):
@@ -284,7 +284,7 @@ class GRB(object):
         Compute the Keplerian angular frequency at the NS surface
 
         """
-        self.OmegaKep = (self.gravconst * self.NS_mass / self.R**3)**0.5
+        self.OmegaKep = (self.gravconst * self.NS_mass / self.NS_radius**3)**0.5
         self.OmegaKep_units = "s^-1"
 
     def Eval_viscous_time(self):
@@ -344,7 +344,7 @@ class GRB(object):
 
         """
         num = 3*self.lightspeed**3*self.I
-        den = self.NS_B**2*self.R**6*self.Omega0**2
+        den = self.NS_B**2*self.NS_radius**6*self.Omega0**2
 
         self.T_em = num/den
         self.T_em_units = 's'
@@ -415,7 +415,7 @@ class GRB(object):
 
         """
         num = self.gravconst*self.NS_mass
-        den = self.R*self.lightspeed**2-0.5*self.gravconst*self.NS_mass
+        den = self.NS_radius*self.lightspeed**2-0.5*self.gravconst*self.NS_mass
         out = 0.6*self.NS_mass*self.lightspeed**2*num/den
         return out
         
@@ -486,7 +486,8 @@ class GRB(object):
         out = (1. - fastness) * (self.gravconst * self.NS_mass * r_mag)**0.5 * Mdot
 
         ## Eq. (7)
-        out[r_mag<=self.R] = ((1. - Omega/self.OmegaKep) * (self.gravconst*self.NS_mass*r_mag)**0.5 * Mdot)[r_mag<=self.R]
+        mask = r_mag<=self.NS_radius
+        out[mask] = ((1. - Omega/self.OmegaKep) * (self.gravconst*self.NS_mass*r_mag)**0.5 * Mdot)[mask]
 
         ###############################################
         ## Check for inhibition by bar-mode instability
