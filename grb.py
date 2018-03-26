@@ -54,7 +54,7 @@ class GRB(object):
                  T0=10,
                  Eimp=1,
                  alpha=0,
-                 Mdisk=0.1,
+                 DISK_mass=0.1,
                  Rdisk=500.0e5, # 500 km
                  alpha_disk=0.1, # disk viscosity parameter
                  cs=1.e7, # sound speed in the disk (100km/s)
@@ -86,7 +86,7 @@ class GRB(object):
         NS_eta_dip : float
                 dipole efficiency factor                 
         
-        Mdisk : float
+        DISK_mass : float
                 disk mass (in units of solar mass)
 
         Rdisk : float
@@ -162,8 +162,8 @@ class GRB(object):
         self.NS_mass_units = 'g'
         self.NS_radius = NS_radius
         self.NS_radius_units = 'cm'
-        self.Mdisk0 = Mdisk * self.Msun
-        self.Mdisk0_units = 'g'
+        self.DISK_mass0 = DISK_mass * self.Msun
+        self.DISK_mass0_units = 'g'
         self.Rdisk0 = Rdisk
         self.Rdisk0_units = 'cm'
         self.alpha_disk = alpha_disk
@@ -226,7 +226,7 @@ class GRB(object):
     def Info(self):
         """print a summary"""
         control_param = ('NS_B','NS_P0','NS_radius','NS_mass','alpha','Eimp','T0',
-                         'Mdisk0','Rdisk0','alpha_disk','cs',
+                         'DISK_mass0','Rdisk0','alpha_disk','cs',
                          'NS_eta_dip','eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
                          'viscous_time','Mdot0','OmegaKep')
@@ -315,7 +315,7 @@ class GRB(object):
         (See eq (3) of King and Ritter 1998)
 
         """
-        self.Mdot0 = self.Mdisk0/self.viscous_time
+        self.Mdot0 = self.DISK_mass0/self.viscous_time
         self.Mdot0_units = "g/s"
         
     def Eval_Omega0(self):
@@ -804,7 +804,7 @@ if __name__=='__main__':
     GRB_061006['NS_P'] = 24.2e-3
     GRB_061006['NS_B'] = 14.1e15
     GRB_061006['alpha'] = 3.24
-    GRB_061006['Mdisk']=0.
+    GRB_061006['DISK_mass']=0.
     GRB_061006['NS_eta_dip']=1.
     GRB_061006['eta_prop']=0.
 
@@ -814,7 +814,7 @@ if __name__=='__main__':
     GRB_061006prop['NS_P'] = 1.51e-3
     GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['alpha'] = 5.0
-    GRB_061006prop['Mdisk']=2.01e-2
+    GRB_061006prop['DISK_mass']=2.01e-2
     GRB_061006prop['Rdisk']=400.e5
     GRB_061006prop['NS_eta_dip']=0.05
     GRB_061006prop['eta_prop']=0.4
