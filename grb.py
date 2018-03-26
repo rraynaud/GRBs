@@ -62,6 +62,11 @@ class GRB(object):
                  EoS_Mtov=2.18, # Msun
                  EoS_alpha=0.0766,
                  EoS_beta=-2.738,
+                 EJECTA_mass=0.1,
+                 EJECTA_opacity=2,
+                 EJECTA_heating_efficiency=0.5,
+                 EJECTA_t0=1.3, # eq. 15 Sun (2017)
+                 EJECTA_tsigma=0.11,
                  tag='notag',
                  verbose=True):
         """
