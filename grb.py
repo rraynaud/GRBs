@@ -31,7 +31,42 @@ plt.rcParams["axes.labelsize"] = 'xx-large'
 plt.rcParams["axes.titlesize"] = 'xx-large'
 plt.rcParams["xtick.labelsize"] = 'x-large'
 plt.rcParams["ytick.labelsize"] = 'x-large'
-###########################
+###########################################
+### dictionnary units
+### each key must be an input parameter
+###########################################
+d_units = {}
+d_units['t_min'] = 's'
+d_units['t_max'] = 's'
+d_units['t_num'] = ''
+d_units['NS_B'] = 'G'
+d_units['NS_mass'] = 'g'
+d_units['NS_radius'] = 'cm'
+d_units['NS_period'] = 's'
+d_units['NS_eta_dip'] = ''
+d_units['AG_T0'] = 's'
+d_units['AG_Eimp'] = 'erg'
+d_units['AG_alpha'] = ''
+d_units['DISK_mass0'] = 'g'
+d_units['DISK_radius'] = 'cm'
+d_units['DISK_alpha'] = ''
+d_units['DISK_cs'] = 'cm/s'
+d_units['DISK_eta_prop'] = ''
+d_units['EOS_Mtov'] = 'g'
+d_units['EOS_alpha'] = ''
+d_units['EOS_beta'] = ''
+d_units['EJECTA_mass'] = 'g'
+d_units['EJECTA_opacity'] = 'cm^2/g'
+d_units['EJECTA_heating_efficiency']=''
+d_units['EJECTA_Gamma0'] = ''
+d_units['EJECTA_co_T0'] = 's'
+d_units['EJECTA_co_TSIGMA'] = 's'
+d_units['EJECTA_co_Time0'] = 's'
+d_units['EJECTA_co_Eint0'] = 'erg'
+d_units['EJECTA_co_Volume0'] = 'cm^3'
+d_units['EJECTA_radius0']= 'cm'
+d_units['tag']=''
+###########################################
 class GRB(object):
     """This class defines a transient lightcurve model. 
 
@@ -41,6 +76,17 @@ class GRB(object):
     Methods of the form Eval_* set attributes
     Methods of the form L_* return a timeserie (1D array)
 
+    Ejecta parameters for the trapped zone:
+        *_co_* = quantity defined in the co-moving frame
+
+    Time dependent variables:
+        - Omega (neutron star angular velocity)
+        - Gamma (Lorentz factor)
+        - Radius (radius of the ejecta)
+        - co_Time : co-moving time
+        - co_Eint (ejecta internal energy)
+        - c_Volume (volume of the ejecta)
+
     """
     def __init__(self,
                  t_min=0,
@@ -49,12 +95,12 @@ class GRB(object):
                  NS_B=1e15,
                  NS_mass=1.4,
                  NS_radius=1e6,
-                 NS_P=1e-3,
+                 NS_period=1e-3,
                  NS_eta_dip=1,
                  AG_T0=10,
                  AG_Eimp=1,
                  AG_alpha=0,
-                 DISK_mass=0.1,
+                 DISK_mass0=0.1,
                  DISK_radius=500.0e5, # 500 km
                  DISK_alpha=0.1, # disk viscosity parameter
                  DISK_cs=1.e7, # sound speed in the disk (100km/s)
@@ -65,12 +111,12 @@ class GRB(object):
                  EJECTA_mass=0.1,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
-                 EJECTA_t0=1.3, # eq. 15 Sun (2017)
-                 EJECTA_tsigma=0.11,
-                 EJECTA_cotime0=0,
                  EJECTA_Gamma0=1,
-                 EJECTA_coEint0=1,
-                 EJECTA_coVolume0=1,
+                 EJECTA_co_T0=1.3, # eq. 15 Sun (2017)
+                 EJECTA_co_TSIGMA=0.11,
+                 EJECTA_co_Time0=0,
+                 EJECTA_co_Eint0=1,
+                 EJECTA_co_Volume0=1,
                  EJECTA_radius0=1,
                  tag='notag',
                  verbose=True):
@@ -84,7 +130,7 @@ class GRB(object):
         NS_B : float
                 magnetar magnetic field
         
-        NS_P : float
+        NS_period : float
                 magnetar period
 
         NS_mass : float
@@ -133,9 +179,12 @@ class GRB(object):
         ### save control parameters
         ############################
         self.parameters = locals()
+        ### remove useless parameters
         del self.parameters['verbose']
-#        del self.parameters['__class__']
         del self.parameters['self']
+        if sys.version_info.major==3:
+            del self.parameters['__class__']
+
         ###########################
         ### astrophysical constants
         ###########################
@@ -144,53 +193,28 @@ class GRB(object):
         ### gravitational constant
         self.gravconst = 6.67259e-8 # cm^3 g^-1 s^-2
 
-        ###########################################
-        ## input : set inputs and their dimensions
-        ## NB: ALTERNATIVE use self.parameters and
-        ## define a dictionnary to store the units
-        ###########################################
-        ## define time
+        ##########################
+        ## define integration time
+        ##########################
         time = np.logspace(t_min,t_max,t_num)
         self.time = time
         self.time_units = 's'
 
-        self.NS_eta_dip = NS_eta_dip
-        self.NS_eta_dip_units = ''
-        self.DISK_eta_prop = DISK_eta_prop
-        self.DISK_eta_prop_units = ''
-        self.AG_Eimp = AG_Eimp
-        self.AG_Eimp_units = 'erg'
-        self.AG_T0 = AG_T0
-        self.AG_T0_units = 's'
-        self.AG_alpha = AG_alpha
-        self.AG_alpha_units = ''
-        self.NS_B = NS_B
-        self.NS_B_units = 'G'
-        self.NS_P0 = NS_P ## 2 names for one var; not ideal
-        self.NS_P0_units = 's'
-        self.NS_mass = NS_mass * self.Msun
-        self.NS_mass_units = 'g'
-        self.NS_radius = NS_radius
-        self.NS_radius_units = 'cm'
-        self.DISK_mass0 = DISK_mass * self.Msun
-        self.DISK_mass0_units = 'g'
-        self.DISK_radius0 = DISK_radius
-        self.DISK_radius0_units = 'cm'
-        self.DISK_alpha = DISK_alpha
-        self.DISK_alpha_units = ''
-        self.DISK_cs = DISK_cs
-        self.DISK_cs_units = 'cm/s'
-        self.tag = tag
-        self.EOS_Mtov = EOS_Mtov * self.Msun
-        self.EOS_Mtov_units = 'g'
-        self.EOS_alpha = EOS_alpha
-        self.EOS_alpha_units = ''
-        self.EOS_beta = EOS_beta
-        self.EOS_beta_units = ''
-        self.EJECTA_mass = EJECTA_mass * self.Msun
-        self.EJECTA_mass_units = 'g'
-        self.EJECTA_opacity = EJECTA_opacity
-        self.EJECTA_opacity_units = 'cm^2/g'
+        ##############################
+        ## automatic attribute setting
+        ##############################
+        for key,val in self.parameters.items():
+            setattr(self,key,val)
+            key2 = key+'_units'
+            setattr(self,key2,d_units[key])
+        #####################
+        ## rescaling masses !
+        #####################
+        self.NS_mass     *= self.Msun
+        self.DISK_mass0  *= self.Msun
+        self.EOS_Mtov    *= self.Msun
+        self.EJECTA_mass *= self.Msun
+
         ##################
         ### temporary fix
         ##################
@@ -217,9 +241,17 @@ class GRB(object):
         self.AG_Eimp = self.L_em0#*self.T0
 
         ######################
+        ## Time integration
+        ######################
+        Y0 = self.Initial_conditions()
+
+        #self.Eval_Omega(time)
+        self.Time_integration(Y0,time)
+
+        ######################
         ### Light curves
         ######################
-        self.Eval_Omega(time)
+        ## outputs
         self.Eval_radii(time)
         self.Eval_torques(time)
         self.Eval_diag(time)
@@ -239,9 +271,9 @@ class GRB(object):
     ##########################################################
     def Info(self):
         """print a summary"""
-        control_param = ('NS_B','NS_P0','NS_radius','NS_mass',
+        control_param = ('NS_B','NS_period','NS_radius','NS_mass',
                          'AG_alpha','AG_Eimp','AG_T0',
-                         'DISK_mass0','DISK_radius0','DISK_alpha','DISK_cs',
+                         'DISK_mass0','DISK_radius','DISK_alpha','DISK_cs',
                          'NS_eta_dip','DISK_eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
                          'viscous_time','Mdot0','OmegaKep')
@@ -310,8 +342,8 @@ class GRB(object):
         #####################################################
         ## Inconsistent prescription used in Gompertz 2014...
         #####################################################
-        self.viscous_time = self.DISK_radius0**2
-        self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius0)
+        self.viscous_time = self.DISK_radius**2
+        self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius)
 
         #####################################################
         ## More consistent definition of the viscous time (?)
@@ -338,7 +370,8 @@ class GRB(object):
         Set the angular frequency 
 
         """
-        self.Omega0 = 2*np.pi/self.NS_P0
+        self.Omega0 = 2*np.pi/self.NS_period
+
 
     def Eval_Tc(self):
         """
@@ -383,24 +416,27 @@ class GRB(object):
         """
         if Omega is None:
             Omega=self.Omega0
+
         out = self.lightspeed/Omega
-        return out
+
+        return np.ascontiguousarray(out)
 
     def Magnetospheric_radius(self,T=0,Omega=None):
         """
         Magnetospheric radius 
 
         """
+        T = np.ascontiguousarray(T)
         if Omega is None:
-            Omega=self.Omega0
+            Omega = self.Omega0
+            
         Mdot = self.Accretion_rate(T)
         r_lc = self.LC_radius(Omega)
         out = self.mu**(4./7) * (self.gravconst*self.NS_mass)**(-1./7) * Mdot**(-2./7)
+
         mask = out > 0.999*r_lc
         out[mask] = 0.999*r_lc[mask]
-#        if isinstance(T,np.ndarray):
-#        else:
-#            out = min(out,0.999*r_lc)
+
         return out
 
     def Corotation_radius(self,Omega=None):
@@ -443,9 +479,7 @@ class GRB(object):
         mdot_floor=1e-10
         out = self.Mdot0 * np.exp(-T / self.viscous_time)
         out[out<mdot_floor] = mdot_floor
-#        if isinstance(T,np.ndarray):
-#        else:
-#            out = max(out,mdot_floor)
+
         return out
 
     def Torque_spindown(self,T,Omega):
@@ -511,6 +545,14 @@ class GRB(object):
         beta = self.E_rot(Omega)/abs(self.E_bind())
         out[beta>0.27] = 0.
 
+        #########################
+        ## check NS stability
+        #########################
+        where_NS_is_unstable = Omega < self.Omega_c
+        if np.any(where_NS_is_unstable):
+            out[where_NS_is_unstable] = 0.
+            warnings.warn('NS collapsed')
+
         return out
 
     def Omega_dot(self,Omega,T):
@@ -519,20 +561,138 @@ class GRB(object):
 
         """
         T = np.ascontiguousarray(T)
+
         Mdot = self.Accretion_rate(T)
 
         r_lc = self.LC_radius(Omega)
         r_mag = self.Magnetospheric_radius(T,Omega)
         r_corot = self.Corotation_radius(Omega)
-#        print type(Omega),Omega.shape,type(T)
-#        print 'rlc',type(r_lc)
-#        print 'rmag',type(r_mag)
-#        print 'rcorot',type(r_corot)
 
         Ndip = self.Torque_spindown(T,Omega)
         Nacc = self.Torque_accretion(T,Omega)
 
         return (Ndip + Nacc)/self.I
+
+    def co_Time_dot(self,Gamma):
+        return self.Doppler_factor(Gamma)
+
+    def Gamma_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius):
+        """
+        Eq. (14) Sun et al. (2017)
+
+        """
+        ##########################
+        ### intermediate variables
+        ##########################
+        Doppler = self.Doppler_factor(Gamma)
+        beta = self.Beta(Gamma)
+
+        L_dip = self.Luminosity_dipole(Omega,T)
+        L_prop = self.Luminosity_propeller(Omega,T)
+        L_radioactivity = self.L_radioactivity(co_Time)
+        L_electrons = self.L_electrons(co_Eint,Gamma,co_Volume,Radius)
+
+        L1 = L_dip + L_prop + L_radioactivity - L_electrons
+        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radioactivity - L_electrons
+
+        ##########
+        ### output
+        ##########
+        gdot = L1 - Gamma/Doppler * L2
+
+        gdot+= Gamma*Doppler * co_Eint/(3*co_Volume) * 4*np.pi*beta*self.lightspeed*Radius**2
+
+        gdot/=(self.EJECTA_mass*self.lightspeed**2 + co_Eint)
+
+        return gdot
+
+    def co_Eint_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius):
+        """
+        Eq. (15) Sun et al. (2017)
+
+        """
+        ##########################
+        ### intermediate variables
+        ##########################
+        Doppler = self.Doppler_factor(Gamma)
+        beta = self.Beta(Gamma)
+        L_dip = self.Luminosity_dipole(Omega,T)
+        L_prop = self.Luminosity_propeller(Omega,T)
+        L_radioactivity = self.L_radioactivity(co_Time)
+        L_electrons = self.L_electrons(co_Eint,Gamma,co_Volume,Radius)
+
+        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radioactivity - L_electrons
+
+        ##########
+        ### output
+        ##########
+        Edot = 1/Doppler**2 * L2 - co_Eint/(3*co_Volume) * 4*np.pi*beta*self.lightspeed*Radius**2
+
+        Edot*= Doppler
+
+        return Edot
+
+
+    def co_Volume_dot(self,Gamma,Radius):
+
+        vdot = self.Doppler_factor(Gamma)*4*np.pi*self.lightspeed
+        vdot*= Radius**2*self.Beta(Gamma)
+
+        return vdot
+
+    def Radius_dot(self,Gamma):
+
+        beta = self.Beta(Gamma)
+        rdot = beta*self.lightspeed/(1.-beta)
+        return rdot
+
+
+    def Initial_conditions(self):
+        CI = (self.Omega0,
+              self.EJECTA_co_Time0,
+              self.EJECTA_Gamma0,
+              self.EJECTA_co_Eint0,
+              self.EJECTA_co_Volume0,
+              self.EJECTA_radius0)
+        return CI
+
+    def Build_RHS(self, Y, T):
+        """
+        function to be passed to odeint wrapper
+
+        """
+        T = np.ascontiguousarray(T)
+
+        ### expand variables
+        Omega, co_Time, Gamma, co_Eint, co_Volume, Radius = Y
+
+        ### compute each RHS
+        Omega_dot = self.Omega_dot(Omega,T)
+
+        co_Time_dot = self.co_Time_dot(Gamma)
+
+        Gamma_dot = self.Gamma_dot(T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius)
+
+        co_Eint_dot = self.co_Eint_dot(T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius)
+
+        co_Volume_dot = self.co_Volume_dot(Gamma,Radius)
+
+        Radius_dot = self.Radius_dot(Gamma)
+
+        ### repack and return
+        out = [Omega_dot, co_Time_dot,
+               Gamma_dot, co_Eint_dot, co_Volume_dot, Radius_dot]
+        return out
+
+    def Time_integration(self,Y0,time):
+        """
+        odeint wrapper
+
+        """
+        sol = odeint(self.Build_RHS, Y0, time)
+
+        (self.Omega, self.co_Time, self.Gamma, self.co_Eint,
+        self.co_Volume, self.Radius) = sol.T
 
     def Eval_Omega(self,T):
         """
@@ -564,6 +724,27 @@ class GRB(object):
             Pc = (num/den)**(1./self.EOS_beta)
             self.Omega_c = 2*np.pi/Pc
 
+
+    def Luminosity_dipole(self,Omega,T):
+
+        Ndip = self.Torque_spindown(T,Omega)
+        ldip = -self.NS_eta_dip * Ndip * Omega
+
+        return ldip
+
+    def Luminosity_propeller(self,Omega,T):
+
+        ### intermediate variables
+        Mdot=self.Accretion_rate(T)
+        Nacc = self.Torque_accretion(T,Omega)
+        rmag = self.Magnetospheric_radius(T,Omega)
+
+        ### output
+        lprop = - Nacc*Omega - self.gravconst*self.NS_mass*Mdot/rmag
+        lprop*= self.DISK_eta_prop
+
+        return lprop
+
     ##############################################
     ## Function definitions for the trapped zone
     ##############################################
@@ -575,7 +756,7 @@ class GRB(object):
         return (1-Gamma**(-2))**0.5
 
     def Doppler_factor(self,Gamma,theta=0):
-        out = Gamma*(1. - Beta(Gamma)*np.cos(theta))
+        out = Gamma*(1. - self.Beta(Gamma)*np.cos(theta))
         return 1./out
 
     def Optical_depth(self,Gamma,Volume,Radius):
@@ -583,7 +764,7 @@ class GRB(object):
         out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
         out*= self.EJECTA_opacity
 
-        return out
+        return np.ascontiguousarray(out)
 
     def L_radioactivity(self,cotime):
         """
@@ -592,7 +773,7 @@ class GRB(object):
         """
         prefactor = 4e49*self.EJECTA_mass/1e-2
 
-        out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_t0)/self.EJECTA_tsigma))**1.3
+        out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_co_T0)/self.EJECTA_co_TSIGMA))**1.3
         out*=prefactor
         
         return out
@@ -603,13 +784,14 @@ class GRB(object):
 
         """
         tau = self.Optical_depth(Gamma,Volume,Radius)
-        ejecta_thick = tau>1
 
-        num = Eint*self.lightspeed*Gamma
-        den = Radius
-        den[ejecta_thick]*=tau[ejecta_thick]
+        where_ejecta_thin = tau<=1
 
-        return num/den
+        out = Eint*self.lightspeed*Gamma/(tau*Radius)
+
+        out[where_ejecta_thin]*= tau[where_ejecta_thin]
+
+        return out
 
     ############################################
     ### Lightcurve definitions
@@ -684,7 +866,7 @@ class GRB(object):
         """
         Omega=self.Omega
         self.r_lc  = self.LC_radius(Omega)
-        self.r_mag = self.Magnetospheric_radius(T,Omega) 
+        self.r_mag = self.Magnetospheric_radius(T,Omega)
         self.r_cor = self.Corotation_radius(Omega)
 
     def Eval_torques(self,T):
@@ -867,21 +1049,21 @@ if __name__=='__main__':
 
     ## modelling of GRB 061006 with dipole + power law by Gompertz et al 2013
     GRB_061006 = {}
-    GRB_061006['AG_T0'] = 200
-    GRB_061006['NS_P'] = 24.2e-3
+    GRB_061006['NS_period'] = 24.2e-3
     GRB_061006['NS_B'] = 14.1e15
-    GRB_061006['AG_alpha'] = 3.24
-    GRB_061006['DISK_mass']=0.
     GRB_061006['NS_eta_dip']=1.
+    GRB_061006['AG_alpha'] = 3.24
+    GRB_061006['AG_T0'] = 200
+    GRB_061006['DISK_mass0']=0.
     GRB_061006['DISK_eta_prop']=0.
 
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
     GRB_061006prop['AG_T0'] = 4e0
-    GRB_061006prop['NS_P'] = 1.51e-3
+    GRB_061006prop['NS_period'] = 1.51e-3
     GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['AG_alpha'] = 5.0
-    GRB_061006prop['DISK_mass']=2.01e-2
+    GRB_061006prop['DISK_mass0']=2.01e-2
     GRB_061006prop['DISK_radius']=400.e5
     GRB_061006prop['NS_eta_dip']=0.05
     GRB_061006prop['DISK_eta_prop']=0.4
