@@ -46,13 +46,13 @@ class GRB(object):
                  t_min=0,
                  t_max=6,
                  t_num=200,
+                 NS_B=1e15,
+                 NS_mass=1.4,
                  eta_dip=1,
                  T0=10,
                  Eimp=1,
                  alpha=0,
-                 B=1e15,
                  P=1e-3,
-                 M=1.4,
                  R=1e6,
                  Mdisk=0.1,
                  Rdisk=500.0e5, # 500 km
@@ -71,13 +71,13 @@ class GRB(object):
         t_min, t_max, t_num : float, float, int
                 define the integration time
 
-        B : float
+        NS_B : float
                 magnetar magnetic field
         
         P : float
                 magnetar period
 
-        M : float
+        NS_mass : float
                 magnetar mass (in units of solar mass)
 
         R : float
@@ -154,12 +154,12 @@ class GRB(object):
         self.T0_units = 's'
         self.alpha = alpha
         self.alpha_units = '' 
-        self.B = B
-        self.B_units = 'G'
+        self.NS_B = NS_B
+        self.NS_B_units = 'G'
         self.P0 = P ## 2 names for one var; not ideal
         self.P0_units = 's'
-        self.M = M * self.Msun
-        self.M_units = 'g'
+        self.NS_mass = NS_mass * self.Msun
+        self.NS_mass_units = 'g'
         self.R = R
         self.R_units = 'cm'
         self.Mdisk0 = Mdisk * self.Msun
@@ -225,7 +225,7 @@ class GRB(object):
     ##########################################################
     def Info(self):
         """print a summary"""
-        control_param = ('B','P0','R','M','alpha','Eimp','T0',
+        control_param = ('NS_B','P0','R','NS_mass','alpha','Eimp','T0',
                          'Mdisk0','Rdisk0','alpha_disk','cs',
                          'eta_dip','eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
@@ -269,14 +269,14 @@ class GRB(object):
         ### Gompertz (2014)
         norm = 0.35
         #################################
-        self.I = norm * self.M*self.R**2
+        self.I = norm * self.NS_mass*self.R**2
         self.I_units = 'g cm^2'
 
     def Eval_magnetic_moment(self):
         """
         compute the magnetar magnetic moment
         """
-        self.mu = self.B * self.R ** 3
+        self.mu = self.NS_B * self.R ** 3
         self.mu_units = "G cm^3"
 
     def Eval_OmegaKep(self):
@@ -284,7 +284,7 @@ class GRB(object):
         Compute the Keplerian angular frequency at the NS surface
 
         """
-        self.OmegaKep = (self.gravconst * self.M / self.R**3)**0.5
+        self.OmegaKep = (self.gravconst * self.NS_mass / self.R**3)**0.5
         self.OmegaKep_units = "s^-1"
 
     def Eval_viscous_time(self):
@@ -344,7 +344,7 @@ class GRB(object):
 
         """
         num = 3*self.lightspeed**3*self.I
-        den = self.B**2*self.R**6*self.Omega0**2
+        den = self.NS_B**2*self.R**6*self.Omega0**2
 
         self.T_em = num/den
         self.T_em_units = 's'
@@ -380,7 +380,7 @@ class GRB(object):
             Omega=self.Omega0
         Mdot = self.Accretion_rate(T)
         r_lc = self.LC_radius(Omega)
-        out = self.mu**(4./7) * (self.gravconst*self.M)**(-1./7) * Mdot**(-2./7)
+        out = self.mu**(4./7) * (self.gravconst*self.NS_mass)**(-1./7) * Mdot**(-2./7)
         if isinstance(T,np.ndarray):
             mask = out > 0.999*r_lc
             out[mask] = 0.999*r_lc[mask]
@@ -395,7 +395,7 @@ class GRB(object):
         """
         if Omega is None:
             Omega=self.Omega0
-        out = (self.gravconst * self.M / Omega**2)**(1./3)
+        out = (self.gravconst * self.NS_mass/ Omega**2)**(1./3)
         return out
 
     def E_rot(self,Omega=None):
@@ -414,9 +414,9 @@ class GRB(object):
         Prescription from Lattimer and Prakash (2001)
 
         """
-        num = self.gravconst*self.M
-        den = self.R*self.lightspeed**2-0.5*self.gravconst*self.M 
-        out = 0.6*self.M*self.lightspeed**2*num/den
+        num = self.gravconst*self.NS_mass
+        den = self.R*self.lightspeed**2-0.5*self.gravconst*self.NS_mass
+        out = 0.6*self.NS_mass*self.lightspeed**2*num/den
         return out
         
     def Accretion_rate(self,T):
@@ -483,10 +483,10 @@ class GRB(object):
         fastness = (r_mag / r_corot)**1.5
 
         ## Eq. (6)
-        out = (1. - fastness) * (self.gravconst * self.M * r_mag)**0.5 * Mdot
+        out = (1. - fastness) * (self.gravconst * self.NS_mass * r_mag)**0.5 * Mdot
 
         ## Eq. (7)
-        out[r_mag<=self.R] = ((1. - Omega/self.OmegaKep) * (self.gravconst * self.M * r_mag)**0.5 * Mdot)[r_mag<=self.R]
+        out[r_mag<=self.R] = ((1. - Omega/self.OmegaKep) * (self.gravconst*self.NS_mass*r_mag)**0.5 * Mdot)[r_mag<=self.R]
 
         ###############################################
         ## Check for inhibition by bar-mode instability
@@ -532,7 +532,7 @@ class GRB(object):
         Rem: assume constant NS mass
 
         """
-        num = self.M - self.EoS_Mtov
+        num = self.NS_mass - self.EoS_Mtov
 
         if num<0:
             ## then NS always stable
@@ -589,7 +589,7 @@ class GRB(object):
             Mdot=self.Accretion_rate(T)
             r_mag=self.r_mag
             Nacc=self.N_acc
-            out = self.eta_prop * (- Nacc*Omega - self.gravconst*self.M*Mdot/r_mag )
+            out = self.eta_prop * (- Nacc*Omega - self.gravconst*self.NS_mass*Mdot/r_mag )
             out[out<0.] = 0.
             self.L_prop = out
         else:
@@ -801,7 +801,7 @@ if __name__=='__main__':
     GRB_061006 = {}
     GRB_061006['T0'] = 200
     GRB_061006['P'] = 24.2e-3
-    GRB_061006['B'] = 14.1e15
+    GRB_061006['NS_B'] = 14.1e15
     GRB_061006['alpha'] = 3.24
     GRB_061006['Mdisk']=0.
     GRB_061006['eta_dip']=1.
@@ -811,7 +811,7 @@ if __name__=='__main__':
     GRB_061006prop = {}
     GRB_061006prop['T0'] = 4e0
     GRB_061006prop['P'] = 1.51e-3
-    GRB_061006prop['B'] = 1.48e15
+    GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['alpha'] = 5.0
     GRB_061006prop['Mdisk']=2.01e-2
     GRB_061006prop['Rdisk']=400.e5
