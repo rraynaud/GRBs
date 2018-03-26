@@ -49,11 +49,11 @@ class GRB(object):
                  NS_B=1e15,
                  NS_mass=1.4,
                  NS_radius=1e6,
+                 NS_P=1e-3,
                  eta_dip=1,
                  T0=10,
                  Eimp=1,
                  alpha=0,
-                 P=1e-3,
                  Mdisk=0.1,
                  Rdisk=500.0e5, # 500 km
                  alpha_disk=0.1, # disk viscosity parameter
@@ -74,7 +74,7 @@ class GRB(object):
         NS_B : float
                 magnetar magnetic field
         
-        P : float
+        NS_P : float
                 magnetar period
 
         NS_mass : float
@@ -156,8 +156,8 @@ class GRB(object):
         self.alpha_units = '' 
         self.NS_B = NS_B
         self.NS_B_units = 'G'
-        self.P0 = P ## 2 names for one var; not ideal
-        self.P0_units = 's'
+        self.NS_P0 = NS_P ## 2 names for one var; not ideal
+        self.NS_P0_units = 's'
         self.NS_mass = NS_mass * self.Msun
         self.NS_mass_units = 'g'
         self.NS_radius = NS_radius
@@ -225,7 +225,7 @@ class GRB(object):
     ##########################################################
     def Info(self):
         """print a summary"""
-        control_param = ('NS_B','P0','NS_radius','NS_mass','alpha','Eimp','T0',
+        control_param = ('NS_B','NS_P0','NS_radius','NS_mass','alpha','Eimp','T0',
                          'Mdisk0','Rdisk0','alpha_disk','cs',
                          'eta_dip','eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
@@ -323,7 +323,7 @@ class GRB(object):
         Set the angular frequency 
 
         """
-        self.Omega0 = 2*np.pi/self.P0
+        self.Omega0 = 2*np.pi/self.NS_P0
 
     def Eval_Tc(self):
         """
@@ -801,7 +801,7 @@ if __name__=='__main__':
     ## modelling of GRB 061006 with dipole + power law by Gompertz et al 2013
     GRB_061006 = {}
     GRB_061006['T0'] = 200
-    GRB_061006['P'] = 24.2e-3
+    GRB_061006['NS_P'] = 24.2e-3
     GRB_061006['NS_B'] = 14.1e15
     GRB_061006['alpha'] = 3.24
     GRB_061006['Mdisk']=0.
@@ -811,7 +811,7 @@ if __name__=='__main__':
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
     GRB_061006prop['T0'] = 4e0
-    GRB_061006prop['P'] = 1.51e-3
+    GRB_061006prop['NS_P'] = 1.51e-3
     GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['alpha'] = 5.0
     GRB_061006prop['Mdisk']=2.01e-2
