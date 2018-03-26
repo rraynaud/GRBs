@@ -51,9 +51,9 @@ class GRB(object):
                  NS_radius=1e6,
                  NS_P=1e-3,
                  NS_eta_dip=1,
-                 T0=10,
-                 Eimp=1,
-                 alpha=0,
+                 AG_T0=10,
+                 AG_Eimp=1,
+                 AG_alpha=0,
                  DISK_mass=0.1,
                  DISK_radius=500.0e5, # 500 km
                  DISK_alpha=0.1, # disk viscosity parameter
@@ -148,12 +148,12 @@ class GRB(object):
         self.NS_eta_dip_units = ''
         self.DISK_eta_prop = DISK_eta_prop
         self.DISK_eta_prop_units = ''
-        self.Eimp = Eimp
-        self.Eimp_units = 'erg'
-        self.T0 = T0
-        self.T0_units = 's'
-        self.alpha = alpha
-        self.alpha_units = '' 
+        self.AG_Eimp = AG_Eimp
+        self.AG_Eimp_units = 'erg'
+        self.AG_T0 = AG_T0
+        self.AG_T0_units = 's'
+        self.AG_alpha = AG_alpha
+        self.AG_alpha_units = ''
         self.NS_B = NS_B
         self.NS_B_units = 'G'
         self.NS_P0 = NS_P ## 2 names for one var; not ideal
@@ -200,7 +200,7 @@ class GRB(object):
         ### fine tuning
         ######################
         print ('Fine tuning ON...')
-        self.Eimp = self.L_em0#*self.T0
+        self.AG_Eimp = self.L_em0#*self.T0
 
         ######################
         ### Light curves
@@ -225,7 +225,8 @@ class GRB(object):
     ##########################################################
     def Info(self):
         """print a summary"""
-        control_param = ('NS_B','NS_P0','NS_radius','NS_mass','alpha','Eimp','T0',
+        control_param = ('NS_B','NS_P0','NS_radius','NS_mass',
+                         'AG_alpha','AG_Eimp','AG_T0',
                          'DISK_mass0','DISK_radius0','DISK_alpha','DISK_cs',
                          'NS_eta_dip','DISK_eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
@@ -331,10 +332,10 @@ class GRB(object):
         eq. (5) of Zhang & Meszaros (2001)
 
         """
-        prefac = (self.alpha+self.q+1)
-        term2 = prefac*(self.Eimp/(self.L_em0*self.T0))**(1./prefac)
+        prefac = (self.AG_alpha+self.q+1)
+        term2 = prefac*(self.AG_Eimp/(self.L_em0*self.AG_T0))**(1./prefac)
         
-        self.Tc = self.T0*max(1,term2)
+        self.Tc = self.AG_T0*max(1,term2)
         self.Tc_units = 's'
 
     def Eval_T_em(self):
@@ -566,7 +567,7 @@ class GRB(object):
         Loss function
         Limp * T**(-alpha)
         """
-        self.L_rad = self.Eimp * (T/self.T0)**(-self.alpha)
+        self.L_rad = self.AG_Eimp * (T/self.AG_T0)**(-self.AG_alpha)
         
     def Eval_L_dip(self):
         """
@@ -800,20 +801,20 @@ if __name__=='__main__':
 
     ## modelling of GRB 061006 with dipole + power law by Gompertz et al 2013
     GRB_061006 = {}
-    GRB_061006['T0'] = 200
+    GRB_061006['AG_T0'] = 200
     GRB_061006['NS_P'] = 24.2e-3
     GRB_061006['NS_B'] = 14.1e15
-    GRB_061006['alpha'] = 3.24
+    GRB_061006['AG_alpha'] = 3.24
     GRB_061006['DISK_mass']=0.
     GRB_061006['NS_eta_dip']=1.
     GRB_061006['DISK_eta_prop']=0.
 
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
-    GRB_061006prop['T0'] = 4e0
+    GRB_061006prop['AG_T0'] = 4e0
     GRB_061006prop['NS_P'] = 1.51e-3
     GRB_061006prop['NS_B'] = 1.48e15
-    GRB_061006prop['alpha'] = 5.0
+    GRB_061006prop['AG_alpha'] = 5.0
     GRB_061006prop['DISK_mass']=2.01e-2
     GRB_061006prop['DISK_radius']=400.e5
     GRB_061006prop['NS_eta_dip']=0.05
