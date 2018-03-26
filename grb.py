@@ -43,7 +43,9 @@ class GRB(object):
 
     """
     def __init__(self,
-                 time=np.logspace(0,6,200),
+                 t_min=0,
+                 t_max=6,
+                 t_num=200,
                  eta_dip=1,
                  T0=10,
                  Eimp=1,
@@ -65,6 +67,10 @@ class GRB(object):
         """
         Parameters (in cgs units, when not specified otherwise)
         ----------
+
+        t_min, t_max, t_num : float, float, int
+                define the integration time
+
         B : float
                 magnetar magnetic field
         
@@ -95,9 +101,6 @@ class GRB(object):
         eta_prop : float
                 propeller efficiency factor
 
-        time : array
-                time integration domain
-
         EoS_Mtov : float
                 maximum mass of a NS with zero spin
 
@@ -120,7 +123,6 @@ class GRB(object):
         ### save control parameters
         ############################
         self.parameters = locals()
-        del self.parameters['time']
         del self.parameters['verbose']
         del self.parameters['__class__']
         del self.parameters['self']
@@ -137,6 +139,11 @@ class GRB(object):
         ## NB: ALTERNATIVE use self.parameters and
         ## define a dictionnary to store the units
         ###########################################
+        ## define time
+        time = np.logspace(t_min,t_max,t_num)
+        self.time = time
+        self.time_units = 's'
+
         self.eta_dip = eta_dip
         self.eta_dip_units = ''
         self.eta_prop = eta_prop
@@ -164,8 +171,6 @@ class GRB(object):
         self.cs = cs
         self.cs_units = 'cm/s'
         self.tag = tag
-        self.time = time
-        self.time_units = 's'
         self.EoS_Mtov = EoS_Mtov * self.Msun
         self.EoS_Mtov_units = 'g'
         self.EoS_alpha = EoS_alpha
@@ -790,7 +795,7 @@ class GRB(object):
 if __name__=='__main__':
 
     #Time array
-    time = np.logspace(0,6,200)
+    #time = np.logspace(0,6,200)
 
     ## modelling of GRB 061006 with dipole + power law by Gompertz et al 2013
     GRB_061006 = {}
@@ -801,7 +806,6 @@ if __name__=='__main__':
     GRB_061006['Mdisk']=0.
     GRB_061006['eta_dip']=1.
     GRB_061006['eta_prop']=0.
-    GRB_061006['time']=time
 
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
@@ -813,24 +817,24 @@ if __name__=='__main__':
     GRB_061006prop['Rdisk']=400.e5
     GRB_061006prop['eta_dip']=0.05
     GRB_061006prop['eta_prop']=0.4
-    GRB_061006prop['time']=time
+    #GRB_061006prop['time']=time
 
     #GRBname = 'GRB061006'
     GRBname = 'GRB061006prop'
 
     if GRBname == 'GRB061006':
         grb = GRB(**GRB_061006)
-        grb.PlotLuminosity(time)
-        grb.PlotRadii(time)
+        grb.PlotLuminosity(grb.time)
+        grb.PlotRadii(grb.time)
 
     if GRBname == 'GRB061006prop':
         grb = GRB(**GRB_061006prop)
-        grb.PlotLuminosity(time)
+        grb.PlotLuminosity(grb.time)
         ### reset axes by hand
         ax = plt.gca()
         ax.set(xlim=[1.,1e5],ylim=[1e42,1e52])
 
-        grb.PlotRadii(time)
+        grb.PlotRadii(grb.time)
 
         #grb.WriteTable()
 
