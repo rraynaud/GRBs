@@ -67,6 +67,11 @@ class GRB(object):
                  EJECTA_heating_efficiency=0.5,
                  EJECTA_t0=1.3, # eq. 15 Sun (2017)
                  EJECTA_tsigma=0.11,
+                 EJECTA_cotime0=0,
+                 EJECTA_Gamma0=1,
+                 EJECTA_coEint0=1,
+                 EJECTA_coVolume0=1,
+                 EJECTA_radius0=1,
                  tag='notag',
                  verbose=True):
         """
@@ -182,6 +187,10 @@ class GRB(object):
         self.EoS_alpha_units = ''
         self.EoS_beta = EoS_beta
         self.EoS_beta_units = ''
+        self.EJECTA_mass = EJECTA_mass * self.Msun
+        self.EJECTA_mass_units = 'g'
+        self.EJECTA_opacity = EJECTA_opacity
+        self.EJECTA_opacity_units = 'cm^2/g'
         ##################
         ### temporary fix
         ##################
@@ -549,7 +558,54 @@ class GRB(object):
             den = self.EoS_alpha * self.EoS_Mtov
             Pc = (num/den)**(1./self.EoS_beta)
             self.Omega_c = 2*np.pi/Pc
+
+    ##############################################
+    ## Function definitions for the trapped zone
+    ##############################################
+    def Beta(self,Gamma):
+        """
+        Gamma : Lorentz factor
+
+        """
+        return (1-Gamma**(-2))**0.5
+
+    def Doppler_factor(self,Gamma,theta=0):
+        out = Gamma*(1. - Beta(Gamma)*np.cos(theta))
+        return 1./out
+
+    def Optical_depth(self,Gamma,Volume,Radius):
+
+        out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
+        out*= self.EJECTA_opacity
+
+        return out
+
+    def L_radioactivity(self,cotime):
+        """
+        Eq. (16) Sun et al. (2017)
+
+        """
+        prefactor = 4e49*self.EJECTA_mass/1e-2
+
+        out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_t0)/self.EJECTA_tsigma))**1.3
+        out*=prefactor
         
+        return out
+
+    def L_electrons(self,Eint,Gamma,Volume,Radius):
+        """
+        Eq. (20) Sun (2017)
+
+        """
+        tau = self.Optical_depth(Gamma,Volume,Radius)
+        ejecta_thick = tau>1
+
+        num = Eint*self.lightspeed*Gamma
+        den = Radius
+        den[ejecta_thick]*=tau[ejecta_thick]
+
+        return num/den
+
     ############################################
     ### Lightcurve definitions
     ### (contribution from dipole,
