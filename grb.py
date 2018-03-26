@@ -59,9 +59,9 @@ class GRB(object):
                  DISK_alpha=0.1, # disk viscosity parameter
                  DISK_cs=1.e7, # sound speed in the disk (100km/s)
                  DISK_eta_prop=1,
-                 EoS_Mtov=2.18, # Msun
-                 EoS_alpha=0.0766,
-                 EoS_beta=-2.738,
+                 EOS_Mtov=2.18, # Msun
+                 EOS_alpha=0.0766,
+                 EOS_beta=-2.738,
                  EJECTA_mass=0.1,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
@@ -111,15 +111,15 @@ class GRB(object):
         DISK_eta_prop : float
                 propeller efficiency factor
 
-        EoS_Mtov : float
+        EOS_Mtov : float
                 maximum mass of a NS with zero spin
 
-        EoS_alpha : float
+        EOS_alpha : float
                 phenomenological parameter used
                 to compute the NS maximum mass
 
-        EoS_beta : float
-                similar to EoS_alpha
+        EOS_beta : float
+                similar to EOS_alpha
 
         tag : string
 
@@ -134,7 +134,7 @@ class GRB(object):
         ############################
         self.parameters = locals()
         del self.parameters['verbose']
-        del self.parameters['__class__']
+#        del self.parameters['__class__']
         del self.parameters['self']
         ###########################
         ### astrophysical constants
@@ -181,12 +181,12 @@ class GRB(object):
         self.DISK_cs = DISK_cs
         self.DISK_cs_units = 'cm/s'
         self.tag = tag
-        self.EoS_Mtov = EoS_Mtov * self.Msun
-        self.EoS_Mtov_units = 'g'
-        self.EoS_alpha = EoS_alpha
-        self.EoS_alpha_units = ''
-        self.EoS_beta = EoS_beta
-        self.EoS_beta_units = ''
+        self.EOS_Mtov = EOS_Mtov * self.Msun
+        self.EOS_Mtov_units = 'g'
+        self.EOS_alpha = EOS_alpha
+        self.EOS_alpha_units = ''
+        self.EOS_beta = EOS_beta
+        self.EOS_beta_units = ''
         self.EJECTA_mass = EJECTA_mass * self.Msun
         self.EJECTA_mass_units = 'g'
         self.EJECTA_opacity = EJECTA_opacity
@@ -396,11 +396,11 @@ class GRB(object):
         Mdot = self.Accretion_rate(T)
         r_lc = self.LC_radius(Omega)
         out = self.mu**(4./7) * (self.gravconst*self.NS_mass)**(-1./7) * Mdot**(-2./7)
-        if isinstance(T,np.ndarray):
-            mask = out > 0.999*r_lc
-            out[mask] = 0.999*r_lc[mask]
-        else:
-            out = min(out,0.999*r_lc)
+        mask = out > 0.999*r_lc
+        out[mask] = 0.999*r_lc[mask]
+#        if isinstance(T,np.ndarray):
+#        else:
+#            out = min(out,0.999*r_lc)
         return out
 
     def Corotation_radius(self,Omega=None):
@@ -442,10 +442,10 @@ class GRB(object):
         """
         mdot_floor=1e-10
         out = self.Mdot0 * np.exp(-T / self.viscous_time)
-        if isinstance(T,np.ndarray):
-            out[out<mdot_floor] = mdot_floor
-        else:
-            out = max(out,mdot_floor)
+        out[out<mdot_floor] = mdot_floor
+#        if isinstance(T,np.ndarray):
+#        else:
+#            out = max(out,mdot_floor)
         return out
 
     def Torque_spindown(self,T,Omega):
@@ -518,11 +518,16 @@ class GRB(object):
         Time derivative of the NS spin used in the propeller model
 
         """
+        T = np.ascontiguousarray(T)
         Mdot = self.Accretion_rate(T)
 
         r_lc = self.LC_radius(Omega)
         r_mag = self.Magnetospheric_radius(T,Omega)
         r_corot = self.Corotation_radius(Omega)
+#        print type(Omega),Omega.shape,type(T)
+#        print 'rlc',type(r_lc)
+#        print 'rmag',type(r_mag)
+#        print 'rcorot',type(r_corot)
 
         Ndip = self.Torque_spindown(T,Omega)
         Nacc = self.Torque_accretion(T,Omega)
@@ -548,15 +553,15 @@ class GRB(object):
         Rem: assume constant NS mass
 
         """
-        num = self.NS_mass - self.EoS_Mtov
+        num = self.NS_mass - self.EOS_Mtov
 
         if num<0:
             ## then NS always stable
             self.Omega_c = -1.
 
         else:
-            den = self.EoS_alpha * self.EoS_Mtov
-            Pc = (num/den)**(1./self.EoS_beta)
+            den = self.EOS_alpha * self.EOS_Mtov
+            Pc = (num/den)**(1./self.EOS_beta)
             self.Omega_c = 2*np.pi/Pc
 
     ##############################################
