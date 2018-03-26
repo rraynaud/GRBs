@@ -50,7 +50,7 @@ class GRB(object):
                  NS_mass=1.4,
                  NS_radius=1e6,
                  NS_P=1e-3,
-                 eta_dip=1,
+                 NS_eta_dip=1,
                  T0=10,
                  Eimp=1,
                  alpha=0,
@@ -83,7 +83,7 @@ class GRB(object):
         NS_radius : float
                 magnetar radius
 
-        eta_dip : float
+        NS_eta_dip : float
                 dipole efficiency factor                 
         
         Mdisk : float
@@ -144,8 +144,8 @@ class GRB(object):
         self.time = time
         self.time_units = 's'
 
-        self.eta_dip = eta_dip
-        self.eta_dip_units = ''
+        self.NS_eta_dip = NS_eta_dip
+        self.NS_eta_dip_units = ''
         self.eta_prop = eta_prop
         self.eta_prop_units = ''
         self.Eimp = Eimp
@@ -227,7 +227,7 @@ class GRB(object):
         """print a summary"""
         control_param = ('NS_B','NS_P0','NS_radius','NS_mass','alpha','Eimp','T0',
                          'Mdisk0','Rdisk0','alpha_disk','cs',
-                         'eta_dip','eta_prop')
+                         'NS_eta_dip','eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
                          'viscous_time','Mdot0','OmegaKep')
         ### for the layout column width
@@ -578,7 +578,7 @@ class GRB(object):
         #####################################################
         #self.L_dip = self.eta_dip * 1./6. * self.mu**2 * self.Omega**4 / self.lightspeed**3
 
-        self.L_dip = -self.eta_dip * self.N_dip * self.Omega
+        self.L_dip = -self.NS_eta_dip * self.N_dip * self.Omega
 
     def Eval_L_prop(self,T):
         """
@@ -601,7 +601,7 @@ class GRB(object):
         Source function due to dipole radiation
         eq. (7) of Zhang & Meszaros (2001)
         """
-        out = self.eta_dip*self.L_em0/(1.+T/self.T_em)**2
+        out = self.NS_eta_dip*self.L_em0/(1.+T/self.T_em)**2
 
         return out
     
@@ -805,7 +805,7 @@ if __name__=='__main__':
     GRB_061006['NS_B'] = 14.1e15
     GRB_061006['alpha'] = 3.24
     GRB_061006['Mdisk']=0.
-    GRB_061006['eta_dip']=1.
+    GRB_061006['NS_eta_dip']=1.
     GRB_061006['eta_prop']=0.
 
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
@@ -816,7 +816,7 @@ if __name__=='__main__':
     GRB_061006prop['alpha'] = 5.0
     GRB_061006prop['Mdisk']=2.01e-2
     GRB_061006prop['Rdisk']=400.e5
-    GRB_061006prop['eta_dip']=0.05
+    GRB_061006prop['NS_eta_dip']=0.05
     GRB_061006prop['eta_prop']=0.4
     #GRB_061006prop['time']=time
 
