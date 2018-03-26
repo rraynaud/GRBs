@@ -58,7 +58,7 @@ class GRB(object):
                  DISK_radius=500.0e5, # 500 km
                  DISK_alpha=0.1, # disk viscosity parameter
                  DISK_cs=1.e7, # sound speed in the disk (100km/s)
-                 eta_prop=1,
+                 DISK_eta_prop=1,
                  EoS_Mtov=2.18, # Msun
                  EoS_alpha=0.0766,
                  EoS_beta=-2.738,
@@ -98,7 +98,7 @@ class GRB(object):
         DISK_cs : float
                 sound speed in the disk
 
-        eta_prop : float
+        DISK_eta_prop : float
                 propeller efficiency factor
 
         EoS_Mtov : float
@@ -146,8 +146,8 @@ class GRB(object):
 
         self.NS_eta_dip = NS_eta_dip
         self.NS_eta_dip_units = ''
-        self.eta_prop = eta_prop
-        self.eta_prop_units = ''
+        self.DISK_eta_prop = DISK_eta_prop
+        self.DISK_eta_prop_units = ''
         self.Eimp = Eimp
         self.Eimp_units = 'erg'
         self.T0 = T0
@@ -227,7 +227,7 @@ class GRB(object):
         """print a summary"""
         control_param = ('NS_B','NS_P0','NS_radius','NS_mass','alpha','Eimp','T0',
                          'DISK_mass0','DISK_radius0','DISK_alpha','DISK_cs',
-                         'NS_eta_dip','eta_prop')
+                         'NS_eta_dip','DISK_eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
                          'viscous_time','Mdot0','OmegaKep')
         ### for the layout column width
@@ -585,12 +585,12 @@ class GRB(object):
         Propeller Luminosity
         """
         ## check not necessary ?
-        if (self.eta_prop > 0): 
+        if (self.DISK_eta_prop > 0): 
             Omega=self.Omega
             Mdot=self.Accretion_rate(T)
             r_mag=self.r_mag
             Nacc=self.N_acc
-            out = self.eta_prop * (- Nacc*Omega - self.gravconst*self.NS_mass*Mdot/r_mag )
+            out = self.DISK_eta_prop * (- Nacc*Omega - self.gravconst*self.NS_mass*Mdot/r_mag )
             out[out<0.] = 0.
             self.L_prop = out
         else:
@@ -665,7 +665,7 @@ class GRB(object):
         ax.loglog(T,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
         ax.loglog(T,self.L_dip,'k-.',label=r'$L_{dip}$')
         #ax.loglog(T,self.L_em(T),'y-.',label=r'$L_{em}$')
-        if self.eta_prop > 0:
+        if self.DISK_eta_prop > 0:
             ax.loglog(T,self.L_prop,'g:',label=r'$L_{prop}$')
 
         ############
@@ -695,7 +695,7 @@ class GRB(object):
         ### Plot of radii (magnetospheric, corotation, light-cylinder)
         ax.loglog(T,self.r_cor,label=r'$r_{corot}$')
         ax.loglog(T,self.r_lc,label=r'$r_{lc}$')
-        if self.eta_prop > 0:
+        if self.DISK_eta_prop > 0:
             ax.loglog(T,self.r_mag,label=r'$r_{mag}$')
 
         ############
@@ -806,7 +806,7 @@ if __name__=='__main__':
     GRB_061006['alpha'] = 3.24
     GRB_061006['DISK_mass']=0.
     GRB_061006['NS_eta_dip']=1.
-    GRB_061006['eta_prop']=0.
+    GRB_061006['DISK_eta_prop']=0.
 
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
@@ -817,7 +817,7 @@ if __name__=='__main__':
     GRB_061006prop['DISK_mass']=2.01e-2
     GRB_061006prop['DISK_radius']=400.e5
     GRB_061006prop['NS_eta_dip']=0.05
-    GRB_061006prop['eta_prop']=0.4
+    GRB_061006prop['DISK_eta_prop']=0.4
     #GRB_061006prop['time']=time
 
     #GRBname = 'GRB061006'
