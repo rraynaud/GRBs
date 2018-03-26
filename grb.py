@@ -55,7 +55,7 @@ class GRB(object):
                  Eimp=1,
                  alpha=0,
                  DISK_mass=0.1,
-                 Rdisk=500.0e5, # 500 km
+                 DISK_radius=500.0e5, # 500 km
                  alpha_disk=0.1, # disk viscosity parameter
                  cs=1.e7, # sound speed in the disk (100km/s)
                  eta_prop=1,
@@ -89,7 +89,7 @@ class GRB(object):
         DISK_mass : float
                 disk mass (in units of solar mass)
 
-        Rdisk : float
+        DISK_radius : float
                 disk radius
 
         alpha_disk : float
@@ -164,8 +164,8 @@ class GRB(object):
         self.NS_radius_units = 'cm'
         self.DISK_mass0 = DISK_mass * self.Msun
         self.DISK_mass0_units = 'g'
-        self.Rdisk0 = Rdisk
-        self.Rdisk0_units = 'cm'
+        self.DISK_radius0 = DISK_radius
+        self.DISK_radius0_units = 'cm'
         self.alpha_disk = alpha_disk
         self.alpha_disk_units = ''
         self.cs = cs
@@ -226,7 +226,7 @@ class GRB(object):
     def Info(self):
         """print a summary"""
         control_param = ('NS_B','NS_P0','NS_radius','NS_mass','alpha','Eimp','T0',
-                         'DISK_mass0','Rdisk0','alpha_disk','cs',
+                         'DISK_mass0','DISK_radius0','alpha_disk','cs',
                          'NS_eta_dip','eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
                          'viscous_time','Mdot0','OmegaKep')
@@ -295,8 +295,8 @@ class GRB(object):
         #####################################################
         ## Inconsistent prescription used in Gompertz 2014...
         #####################################################
-        self.viscous_time = self.Rdisk0**2
-        self.viscous_time/= (3. * self.alpha_disk * self.cs * self.Rdisk0)
+        self.viscous_time = self.DISK_radius0**2
+        self.viscous_time/= (3. * self.alpha_disk * self.cs * self.DISK_radius0)
 
         #####################################################
         ## More consistent definition of the viscous time (?)
@@ -815,7 +815,7 @@ if __name__=='__main__':
     GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['alpha'] = 5.0
     GRB_061006prop['DISK_mass']=2.01e-2
-    GRB_061006prop['Rdisk']=400.e5
+    GRB_061006prop['DISK_radius']=400.e5
     GRB_061006prop['NS_eta_dip']=0.05
     GRB_061006prop['eta_prop']=0.4
     #GRB_061006prop['time']=time
