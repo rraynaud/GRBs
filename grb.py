@@ -56,8 +56,8 @@ class GRB(object):
                  alpha=0,
                  DISK_mass=0.1,
                  DISK_radius=500.0e5, # 500 km
-                 alpha_disk=0.1, # disk viscosity parameter
-                 cs=1.e7, # sound speed in the disk (100km/s)
+                 DISK_alpha=0.1, # disk viscosity parameter
+                 DISK_cs=1.e7, # sound speed in the disk (100km/s)
                  eta_prop=1,
                  EoS_Mtov=2.18, # Msun
                  EoS_alpha=0.0766,
@@ -92,10 +92,10 @@ class GRB(object):
         DISK_radius : float
                 disk radius
 
-        alpha_disk : float
+        DISK_alpha : float
                 disk viscosity parameter
 
-        cs : float
+        DISK_cs : float
                 sound speed in the disk
 
         eta_prop : float
@@ -166,10 +166,10 @@ class GRB(object):
         self.DISK_mass0_units = 'g'
         self.DISK_radius0 = DISK_radius
         self.DISK_radius0_units = 'cm'
-        self.alpha_disk = alpha_disk
-        self.alpha_disk_units = ''
-        self.cs = cs
-        self.cs_units = 'cm/s'
+        self.DISK_alpha = DISK_alpha
+        self.DISK_alpha_units = ''
+        self.DISK_cs = DISK_cs
+        self.DISK_cs_units = 'cm/s'
         self.tag = tag
         self.EoS_Mtov = EoS_Mtov * self.Msun
         self.EoS_Mtov_units = 'g'
@@ -226,7 +226,7 @@ class GRB(object):
     def Info(self):
         """print a summary"""
         control_param = ('NS_B','NS_P0','NS_radius','NS_mass','alpha','Eimp','T0',
-                         'DISK_mass0','DISK_radius0','alpha_disk','cs',
+                         'DISK_mass0','DISK_radius0','DISK_alpha','DISK_cs',
                          'NS_eta_dip','eta_prop')
         derived_param = ('T_em','Tc','I','L_em0','mu',
                          'viscous_time','Mdot0','OmegaKep')
@@ -296,7 +296,7 @@ class GRB(object):
         ## Inconsistent prescription used in Gompertz 2014...
         #####################################################
         self.viscous_time = self.DISK_radius0**2
-        self.viscous_time/= (3. * self.alpha_disk * self.cs * self.DISK_radius0)
+        self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius0)
 
         #####################################################
         ## More consistent definition of the viscous time (?)
