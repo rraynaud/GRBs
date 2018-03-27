@@ -196,6 +196,7 @@ class GRB(object):
         self.gravconst = 6.67259e-8 # cm^3 g^-1 s^-2
         self.hPlanck = 6.6260755e-27
         self.kBoltzmann = 1.380658e-16
+        self.radiation_const = 7.5646e-15
 
         ##########################
         ## define integration time
@@ -892,15 +893,17 @@ class GRB(object):
         """
         tau = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
         L_wind = np.exp(-tau) * self.LX_free
-        nu = 1.
+
+        nu = 1.e19
 
         Doppler = self.Doppler_factor(self.Gamma)
-        Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,Radius)
-        prefactor = 8. * (np.pi * Doppler * self.Radius) / self.hPlanck**3 / self.lightspeed**2
+        Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,self.Radius)
+        prefactor = 8. * (np.pi * Doppler * self.Radius)**2 / self.hPlanck**3 / self.lightspeed**2
         num = (self.hPlanck * nu / Doppler)**4
-        den = np.exp(self.hPlanck * nu / self.kBoltzmann / Temp) - 1.
+        den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
         L_bb = prefactor * num / den 
         self.LX_trap = L_wind + L_bb 
+
     #########################################
     ### Derived quantities used as diagnostic
     ### (characteristic radii, torques, etc.)
@@ -955,21 +958,25 @@ class GRB(object):
                 parameter to save the plot
                 "path/name.format"
         """
-        fig,ax = plt.subplots()
+        fig,ax = plt.subplots(2,1,figsize=(6,8))
 
-        ax.loglog(T,self.L_tot,'r-',linewidth=3.0,label=r'$L_{tot}$') 
-        ax.loglog(T,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
-        ax.loglog(T,self.L_dip,'k-.',label=r'$L_{dip}$')
+        ax[0].loglog(T,self.L_tot,'r-',linewidth=3.0,label=r'$L_{tot}$') 
+        ax[0].loglog(T,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
+        ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_{dip}$')
         #ax.loglog(T,self.L_em(T),'y-.',label=r'$L_{em}$')
         if self.DISK_eta_prop > 0:
-            ax.loglog(T,self.L_prop,'g:',label=r'$L_{prop}$')
+            ax[0].loglog(T,self.L_prop,'g:',label=r'$L_{prop}$')
 
+        ax[1].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{X,free}$') 
+        ax[1].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{X,trap}$') 
         ############
         ### labels
         ############
-        ax.legend(fontsize='x-large')
-        ax.set_ylabel(r'Luminosity [erg/s]')
-        ax.set_xlabel(r'time [s]')
+        for i in [0,1]:
+            ax[i].legend(fontsize='x-large')
+            ax[i].set_ylabel(r'Luminosity [erg/s]')
+            
+        ax[1].set_xlabel(r'time [s]')
 
         ##############################
         ### set axis limits by hand...
@@ -981,6 +988,7 @@ class GRB(object):
             ## implement specific filename generator
             ## here if needed
             plt.savefig(filename)
+        return fig,ax
 
     def PlotRadii(self,T):
         """
@@ -1126,12 +1134,13 @@ if __name__=='__main__':
 
     if GRBname == 'GRB061006prop':
         grb = GRB(**GRB_061006prop)
-        grb.PlotLuminosity(grb.time)
+        fig,ax=grb.PlotLuminosity(grb.time)
         ### reset axes by hand
-        ax = plt.gca()
-        ax.set(xlim=[1.,1e5],ylim=[1e42,1e52])
+#        ax = plt.gca()
+        for i in np.arange(ax.size):
+            ax[i].set(xlim=[1.,1e5],ylim=[1e42,1e52])
 
-        grb.PlotRadii(grb.time)
+        #grb.PlotRadii(grb.time)
 
         #grb.WriteTable()
 
