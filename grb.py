@@ -65,6 +65,7 @@ d_units['EJECTA_co_Time0'] = 's'
 d_units['EJECTA_co_Eint0'] = 'erg'
 d_units['EJECTA_co_Volume0'] = 'cm^3'
 d_units['EJECTA_radius0']= 'cm'
+d_units['EJECTA_theta']= 'rad'
 d_units['tag']=''
 ###########################################
 class GRB(object):
@@ -111,6 +112,7 @@ class GRB(object):
                  EJECTA_mass=0.1,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
+                 EJECTA_theta=0.,
                  EJECTA_Gamma0=1,
                  EJECTA_co_T0=1.3, # eq. 15 Sun (2017)
                  EJECTA_co_TSIGMA=0.11,
@@ -755,8 +757,8 @@ class GRB(object):
         """
         return (1-Gamma**(-2))**0.5
 
-    def Doppler_factor(self,Gamma,theta=0):
-        out = Gamma*(1. - self.Beta(Gamma)*np.cos(theta))
+    def Doppler_factor(self,Gamma):
+        out = Gamma*(1. - self.Beta(Gamma)*np.cos(self.EJECTA_theta))
         return 1./out
 
     def Optical_depth(self,Gamma,Volume,Radius):
