@@ -266,7 +266,7 @@ class GRB(object):
         self.Eval_L_prop(time)
         self.Eval_L_tot(time)
         self.Eval_LX_free()
-        self.Eval_LX_trap(time)
+        #self.Eval_LX_trap(time)
 
         ######################
         ### print a summary
@@ -483,9 +483,14 @@ class GRB(object):
         Eq. (13) from Zhang and Meszaros 2001
 
         """
-        T = np.ascontiguousarray(T)
-        mdot_floor=1e-10
         out = self.Mdot0 * np.exp(-T / self.viscous_time)
+
+        ## set a minimum value to avoid
+        ## crashing during time integration
+        mdot_floor=1e-10
+
+        ## check with a mask
+        out = np.ascontiguousarray(out)
         out[out<mdot_floor] = mdot_floor
 
         return out
@@ -578,11 +583,17 @@ class GRB(object):
         Nacc = self.Torque_accretion(T,Omega)
 
         out = (Ndip + Nacc)/self.I
+
         return np.ascontiguousarray(out)
-#        return out
 
     def co_Time_dot(self,Gamma):
+        """
+        return the derivative of the time (t')
+        in the co-moving reference frame
+
+        """
         out = self.Doppler_factor(Gamma)
+
         return np.ascontiguousarray(out)
 
     def Gamma_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius):
@@ -640,8 +651,6 @@ class GRB(object):
         Edot*= Doppler
 
         return np.ascontiguousarray(Edot)
-#        return Edot
-
 
     def co_Volume_dot(self,Gamma,Radius):
 
@@ -649,15 +658,12 @@ class GRB(object):
         vdot*= Radius**2*self.Beta(Gamma)
 
         return np.ascontiguousarray(vdot)
-#        return vdot
 
     def Radius_dot(self,Gamma):
 
         beta = self.Beta(Gamma)
         rdot = beta*self.lightspeed/(1.-beta)
         return np.ascontiguousarray(rdot)
-#        return rdot
-
 
     def Initial_conditions(self):
         IC = (self.Omega0,
@@ -667,17 +673,29 @@ class GRB(object):
               self.EJECTA_co_Volume0,
               self.EJECTA_radius0)
         return IC
-#        return np.ascontiguousarray(IC)
 
     def Build_RHS(self, Y, T):
         """
-        function to be passed to odeint wrapper
+        This function computes the time derivatives
+        and is aimed to be passed to scipy.odeint()
+
+        This determines its signature :
+
+        Y : the unkknown
+
+        T : time
 
         """
-        ### expand variables
+        ####################################
+        ## expand variables
+        ## these will be of numpy.float type
+        ####################################
         Omega, co_Time, Gamma, co_Eint, co_Volume, Radius = Y
 
-        ### compute each RHS
+        ######################################
+        ## compute each RHS
+        ## the *_dot() methods return 1D array
+        ######################################
         Omega_dot = self.Omega_dot(Omega,T)
 
         co_Time_dot = self.co_Time_dot(Gamma)
@@ -690,10 +708,21 @@ class GRB(object):
 
         Radius_dot = self.Radius_dot(Gamma)
 
-        ### repack and return
-        out = [Omega_dot, co_Time_dot,
-               Gamma_dot, co_Eint_dot, co_Volume_dot, Radius_dot]
-        return np.ascontiguousarray(out)[:,0]
+        ##########################################################
+        ## repack and return
+        ## the odeint routine expect a tuple of float/1D array
+        ## similar to the initial conditions,
+        ## or when we first expand the Y vector above
+        ##
+        ## That's the reason to enforce this type with the float()
+        ## function !
+        ##
+        ## Rem: be careful to the order of the variables !
+        ##########################################################
+        out = (float(Omega_dot), float(co_Time_dot),
+               float(Gamma_dot), float(co_Eint_dot),
+               float(co_Volume_dot), float(Radius_dot))
+        return out
 
     def Time_integration(self,time):
         """
@@ -903,6 +932,7 @@ class GRB(object):
         num = (self.hPlanck * nu / Doppler)**4
         den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
         L_bb = prefactor * num / den 
+
         #Floor value between optically thick and thin regime
         L_bb[L_bb<=0] = 1.
         self.LX_trap = L_wind + L_bb 
