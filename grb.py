@@ -111,13 +111,13 @@ class GRB(object):
                  EJECTA_mass=0.1,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
-                 EJECTA_Gamma0=1,
+                 EJECTA_Gamma0=1.0001,
                  EJECTA_co_T0=1.3, # eq. 15 Sun (2017)
                  EJECTA_co_TSIGMA=0.11,
-                 EJECTA_co_Time0=0,
-                 EJECTA_co_Eint0=1,
-                 EJECTA_co_Volume0=1,
-                 EJECTA_radius0=1,
+                 EJECTA_co_Time0=1.,
+                 EJECTA_co_Eint0=1e48,
+                 EJECTA_co_Volume0=4./3.*np.pi*1e24,
+                 EJECTA_radius0=1e8,
                  tag='notag',
                  verbose=True):
         """
@@ -192,6 +192,8 @@ class GRB(object):
         self.Msun = 1.98855e33 # g
         ### gravitational constant
         self.gravconst = 6.67259e-8 # cm^3 g^-1 s^-2
+        self.hPlanck = 6.6260755e-27
+        self.kBoltzmann = 1.380658e-16
 
         ##########################
         ## define integration time
@@ -243,10 +245,10 @@ class GRB(object):
         ######################
         ## Time integration
         ######################
-        Y0 = self.Initial_conditions()
+#        Y0 = self.Initial_conditions()
 
         #self.Eval_Omega(time)
-        self.Time_integration(Y0,time)
+        self.Time_integration(time)
 
         ######################
         ### Light curves
@@ -259,6 +261,8 @@ class GRB(object):
         self.Eval_L_dip()
         self.Eval_L_prop(time)
         self.Eval_L_tot(time)
+        self.Eval_LX_free()
+        self.Eval_LX_trap(time)
 
         ######################
         ### print a summary
@@ -426,7 +430,6 @@ class GRB(object):
         Magnetospheric radius 
 
         """
-        T = np.ascontiguousarray(T)
         if Omega is None:
             Omega = self.Omega0
             
@@ -476,6 +479,7 @@ class GRB(object):
         Eq. (13) from Zhang and Meszaros 2001
 
         """
+        T = np.ascontiguousarray(T)
         mdot_floor=1e-10
         out = self.Mdot0 * np.exp(-T / self.viscous_time)
         out[out<mdot_floor] = mdot_floor
@@ -560,8 +564,6 @@ class GRB(object):
         Time derivative of the NS spin used in the propeller model
 
         """
-        T = np.ascontiguousarray(T)
-
         Mdot = self.Accretion_rate(T)
 
         r_lc = self.LC_radius(Omega)
@@ -571,10 +573,13 @@ class GRB(object):
         Ndip = self.Torque_spindown(T,Omega)
         Nacc = self.Torque_accretion(T,Omega)
 
-        return (Ndip + Nacc)/self.I
+        out = (Ndip + Nacc)/self.I
+        return np.ascontiguousarray(out)
+#        return out
 
     def co_Time_dot(self,Gamma):
-        return self.Doppler_factor(Gamma)
+        out = self.Doppler_factor(Gamma)
+        return np.ascontiguousarray(out)
 
     def Gamma_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius):
         """
@@ -589,7 +594,7 @@ class GRB(object):
 
         L_dip = self.Luminosity_dipole(Omega,T)
         L_prop = self.Luminosity_propeller(Omega,T)
-        L_radioactivity = self.L_radioactivity(co_Time)
+        L_radioactivity = self.L_radioactivity(co_Time,Gamma)
         L_electrons = self.L_electrons(co_Eint,Gamma,co_Volume,Radius)
 
         L1 = L_dip + L_prop + L_radioactivity - L_electrons
@@ -604,7 +609,7 @@ class GRB(object):
 
         gdot/=(self.EJECTA_mass*self.lightspeed**2 + co_Eint)
 
-        return gdot
+        return np.ascontiguousarray(gdot)
 
     def co_Eint_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius):
         """
@@ -618,7 +623,7 @@ class GRB(object):
         beta = self.Beta(Gamma)
         L_dip = self.Luminosity_dipole(Omega,T)
         L_prop = self.Luminosity_propeller(Omega,T)
-        L_radioactivity = self.L_radioactivity(co_Time)
+        L_radioactivity = self.L_radioactivity(co_Time,Gamma)
         L_electrons = self.L_electrons(co_Eint,Gamma,co_Volume,Radius)
 
         L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radioactivity - L_electrons
@@ -630,7 +635,8 @@ class GRB(object):
 
         Edot*= Doppler
 
-        return Edot
+        return np.ascontiguousarray(Edot)
+#        return Edot
 
 
     def co_Volume_dot(self,Gamma,Radius):
@@ -638,31 +644,32 @@ class GRB(object):
         vdot = self.Doppler_factor(Gamma)*4*np.pi*self.lightspeed
         vdot*= Radius**2*self.Beta(Gamma)
 
-        return vdot
+        return np.ascontiguousarray(vdot)
+#        return vdot
 
     def Radius_dot(self,Gamma):
 
         beta = self.Beta(Gamma)
         rdot = beta*self.lightspeed/(1.-beta)
-        return rdot
+        return np.ascontiguousarray(rdot)
+#        return rdot
 
 
     def Initial_conditions(self):
-        CI = (self.Omega0,
+        IC = (self.Omega0,
               self.EJECTA_co_Time0,
               self.EJECTA_Gamma0,
               self.EJECTA_co_Eint0,
               self.EJECTA_co_Volume0,
               self.EJECTA_radius0)
-        return CI
+        return IC
+#        return np.ascontiguousarray(IC)
 
     def Build_RHS(self, Y, T):
         """
         function to be passed to odeint wrapper
 
         """
-        T = np.ascontiguousarray(T)
-
         ### expand variables
         Omega, co_Time, Gamma, co_Eint, co_Volume, Radius = Y
 
@@ -682,13 +689,14 @@ class GRB(object):
         ### repack and return
         out = [Omega_dot, co_Time_dot,
                Gamma_dot, co_Eint_dot, co_Volume_dot, Radius_dot]
-        return out
+        return np.ascontiguousarray(out)[:,0]
 
-    def Time_integration(self,Y0,time):
+    def Time_integration(self,time):
         """
         odeint wrapper
 
         """
+        Y0 = self.Initial_conditions()
         sol = odeint(self.Build_RHS, Y0, time)
 
         (self.Omega, self.co_Time, self.Gamma, self.co_Eint,
@@ -766,12 +774,13 @@ class GRB(object):
 
         return np.ascontiguousarray(out)
 
-    def L_radioactivity(self,cotime):
+    def L_radioactivity(self,cotime,Gamma):
         """
         Eq. (16) Sun et al. (2017)
 
         """
-        prefactor = 4e49*self.EJECTA_mass/1e-2
+        Doppler = self.Doppler_factor(Gamma)
+        prefactor = Doppler**2 * 4e49*self.EJECTA_mass/1e-2/self.Msun
 
         out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_co_T0)/self.EJECTA_co_TSIGMA))**1.3
         out*=prefactor
@@ -783,21 +792,36 @@ class GRB(object):
         Eq. (20) Sun (2017)
 
         """
+        Doppler = self.Doppler_factor(Gamma)
         tau = self.Optical_depth(Gamma,Volume,Radius)
 
         where_ejecta_thin = tau<=1
 
-        out = Eint*self.lightspeed*Gamma/(tau*Radius)
+        out = Doppler**2 * Eint*self.lightspeed*Gamma/(tau*Radius)
 
         out[where_ejecta_thin]*= tau[where_ejecta_thin]
 
         return out
 
-    ############################################
+    def Temperature(self,Gamma,Eint,Volume,Radius):
+        """
+        Black-Body temperature (Sun et al. 2017)
+        """
+        tau = self.Optical_depth(Gamma,Volume,Radius)
+        where_ejecta_thin = tau<=1
+
+        out = (Eint/ self.radiation_const / Volume)**(0.25)
+        
+        out[where_ejecta_thin] *= tau[where_ejecta_thin]**(0.25)
+
+        return out
+
+    #############################################
     ### Lightcurve definitions
     ### (contribution from dipole,
     ### accretion + propeller, radiative losses)
-    ############################################
+    ### X-Ray Lightcurves from free/trapped zones
+    #############################################
     def Eval_L_tot(self,T):
         """
         Luminosity function 
@@ -853,7 +877,28 @@ class GRB(object):
         out = self.NS_eta_dip*self.L_em0/(1.+T/self.T_em)**2
 
         return out
+
+    def Eval_LX_free(self):
+        """
+        X-Ray luminosity from dipole spindown and propeller
+        """
+        self.LX_free =  self.NS_eta_dip * self.L_dip + self.DISK_eta_prop * self.L_prop 
     
+    def Eval_LX_trap(self,T):
+        """
+        X-Ray luminosity from trapped zone (Sun et al. 2017)
+        """
+        tau = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
+        L_wind = np.exp(-tau) * self.LX_free
+        nu = 1.
+
+        Doppler = self.Doppler_factor(self.Gamma)
+        Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,Radius)
+        prefactor = 8. * (np.pi * Doppler * self.Radius) / self.hPlanck**3 / self.lightspeed**2
+        num = (self.hPlanck * nu / Doppler)**4
+        den = np.exp(self.hPlanck * nu / self.kBoltzmann / Temp) - 1.
+        L_bb = prefactor * num / den 
+        self.LX_trap = L_wind + L_bb 
     #########################################
     ### Derived quantities used as diagnostic
     ### (characteristic radii, torques, etc.)
