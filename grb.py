@@ -266,7 +266,7 @@ class GRB(object):
         self.Eval_L_prop(time)
         self.Eval_L_tot(time)
         self.Eval_LX_free()
-        #self.Eval_LX_trap(time)
+        self.Eval_LX_trap(time)
 
         ######################
         ### print a summary
