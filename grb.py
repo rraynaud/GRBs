@@ -91,7 +91,7 @@ class GRB(object):
     """
     def __init__(self,
                  t_min=0,
-                 t_max=6,
+                 t_max=10,
                  t_num=200,
                  NS_B=1e15,
                  NS_mass=1.4,
@@ -197,6 +197,7 @@ class GRB(object):
         self.hPlanck = 6.6260755e-27
         self.kBoltzmann = 1.380658e-16
         self.radiation_const = 7.5646e-15
+        self.Ev_to_Hz = 1.602176565e-12 / self.hPlanck
 
         ##########################
         ## define integration time
@@ -885,7 +886,7 @@ class GRB(object):
         """
         X-Ray luminosity from dipole spindown and propeller
         """
-        self.LX_free =  self.NS_eta_dip * self.L_dip + self.DISK_eta_prop * self.L_prop 
+        self.LX_free = self.L_dip + self.L_prop  
     
     def Eval_LX_trap(self,T):
         """
@@ -894,7 +895,7 @@ class GRB(object):
         tau = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
         L_wind = np.exp(-tau) * self.LX_free
 
-        nu = 1.e19
+        nu = 1.e4 * self.Ev_to_Hz
 
         Doppler = self.Doppler_factor(self.Gamma)
         Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,self.Radius)
@@ -902,7 +903,10 @@ class GRB(object):
         num = (self.hPlanck * nu / Doppler)**4
         den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
         L_bb = prefactor * num / den 
+        #Floor value between optically thick and thin regime
+        L_bb[L_bb<=0] = 1.
         self.LX_trap = L_wind + L_bb 
+        
 
     #########################################
     ### Derived quantities used as diagnostic
@@ -967,8 +971,8 @@ class GRB(object):
         if self.DISK_eta_prop > 0:
             ax[0].loglog(T,self.L_prop,'g:',label=r'$L_{prop}$')
 
-        ax[1].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{X,free}$') 
-        ax[1].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{X,trap}$') 
+        ax[1].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$') 
+        ax[1].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$') 
         ############
         ### labels
         ############
@@ -1138,7 +1142,7 @@ if __name__=='__main__':
         ### reset axes by hand
 #        ax = plt.gca()
         for i in np.arange(ax.size):
-            ax[i].set(xlim=[1.,1e5],ylim=[1e42,1e52])
+            ax[i].set(xlim=[1.,1e8],ylim=[1e22,1e52])
 
         #grb.PlotRadii(grb.time)
 
