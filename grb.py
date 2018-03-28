@@ -11,6 +11,7 @@ __email__ ="jerome.guilet@cea.fr ; raphael.raynaud@cea.fr ; matteo.bugli@cea.fr"
 import os,sys
 import numpy as np
 import matplotlib as mpl
+import itertools
 from scipy.integrate import odeint
 #from astropy.io import fits
 from astropy.table import Table
@@ -32,7 +33,7 @@ plt.rcParams["axes.titlesize"] = 'xx-large'
 plt.rcParams["xtick.labelsize"] = 'x-large'
 plt.rcParams["ytick.labelsize"] = 'x-large'
 ###########################################
-### dictionnary units
+### dictionary units
 ### each key must be an input parameter
 ###########################################
 d_units = {}
@@ -67,6 +68,32 @@ d_units['EJECTA_co_Volume0'] = 'cm^3'
 d_units['EJECTA_radius0']= 'cm'
 d_units['EJECTA_theta']= 'rad'
 d_units['tag']=''
+###########################################
+def Generate_inputs(dico):
+    """
+    Input: dictionary of the form
+        {key: array of values to explore}
+
+    Return:
+        a list of dictionaries
+
+    """
+    keys = dico.keys()
+    comb = tuple(itertools.product(*dico.values()))
+    num = len(comb)
+
+    out = [{akey: aval for akey,aval in zip(keys,vals)}
+           for vals in comb]
+
+    ### add a tag to differentiate the models
+    tags = ['m'+str(i+1).rjust(len(str(num)),'0') for i in range(num)]
+    for i,adico in enumerate(out):
+        adico['tag'] = tags[i]
+
+    print ('Generating %i models'%num)
+    return out
+
+
 ###########################################
 class GRB(object):
     """This class defines a transient lightcurve model. 
@@ -272,20 +299,23 @@ class GRB(object):
     ##########################################################
     def Info(self):
         """print a summary"""
-        control_param = ('NS_B','NS_period','NS_radius','NS_mass',
-                         'AG_alpha','AG_Eimp','AG_T0',
-                         'DISK_mass0','DISK_radius','DISK_alpha','DISK_cs',
-                         'NS_eta_dip','DISK_eta_prop')
-        derived_param = ('T_em','Tc','I','L_em0','mu',
-                         'viscous_time','Mdot0','OmegaKep')
+        control_param = list(self.parameters.keys())
+        control_param.remove('tag')
+        control_param.remove('t_min')
+        control_param.remove('t_max')
+        control_param.remove('t_num')
+
+        derived_param = ['T_em','Tc','I','L_em0','mu',
+                         'viscous_time','Mdot0','OmegaKep']
+
         ### for the layout column width
         lenun = max([len(getattr(self,afield+'_units'))
                      for afield in control_param+derived_param])
         lensy = max([len(afield)
                      for afield in control_param+derived_param])
         
-        header = '{:-^%i}'%(lenun+lensy+2+8)
-        ligne = '{:%i} {:8.2e} {:%i}'%(lensy,lenun)
+        header = '{:-^%i}'%(lenun+lensy+2+8+1)
+        ligne = '{:%i} {: 8.2e} {:%i}'%(lensy,lenun)
         
         print (header.format('Model properties'))
         print (header.format('Input parameters'))
@@ -716,9 +746,9 @@ class GRB(object):
         This function computes the time derivatives
         and is aimed to be passed to scipy.odeint()
 
-        This determines its signature :
+        This determines its signature:
 
-        Y : the unknown
+        Y : the unknowns
 
         T : time
 
@@ -1063,7 +1093,7 @@ class GRB(object):
     def WriteTable(self,
                    filename='out.fits',
                    outputs = ('time','L_tot'),
-                   format='fits',
+                   myformat='fits',
                    overwrite=True,
                    **kwargs):
         """
@@ -1072,8 +1102,9 @@ class GRB(object):
         Parameter:
         ----------
 
-        filename : string
+        filename : string or None
                 like 'path/filename.ext'
+                if None, filename = 'tag.format'
 
         outputs : tuple of string
                 attributes to write in different columns
@@ -1089,6 +1120,8 @@ class GRB(object):
                 keyword arguments
 
         """
+        if filename is None:
+            filename = '.'.join((self.tag,myformat))
         ##########################################
         ## A - short way
         ##
@@ -1099,7 +1132,7 @@ class GRB(object):
         datas = [getattr(self,name) for name in outputs]
         table = Table(datas, names=outputs, meta=self.parameters)
         table.write(filename,
-                    format=format,
+                    format=myformat,
                     overwrite=overwrite,**kwargs)
 
         # #######################
@@ -1128,8 +1161,10 @@ class GRB(object):
         
 if __name__=='__main__':
 
-    #Time array
-    #time = np.logspace(0,6,200)
+    ranges = {}
+    ranges['NS_B'] = np.logspace(15,17,15)
+    ranges['NS_mass'] = (1.4,)
+    database = Generate_inputs(ranges)
 
     ## modelling of GRB 061006 with dipole + power law by Gompertz et al 2013
     GRB_061006 = {}
