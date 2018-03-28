@@ -1257,7 +1257,7 @@ if __name__=='__main__':
     if GRBname == 'GRB061006prop':
         grb = GRB(**GRB_061006prop)
         fig,ax=grb.PlotLuminosity(grb.time)
-        ### reset axes by hand
+        ## reset axes by hand
 #        ax = plt.gca()
         for i in np.arange(ax.size):
             ax[i].set(xlim=[1.,1e8],ylim=[1e30,1e52])
