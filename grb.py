@@ -11,6 +11,7 @@ __email__ ="jerome.guilet@cea.fr ; raphael.raynaud@cea.fr ; matteo.bugli@cea.fr"
 import os,sys
 import numpy as np
 import matplotlib as mpl
+import itertools
 from scipy.integrate import odeint
 #from astropy.io import fits
 from astropy.table import Table
@@ -32,7 +33,7 @@ plt.rcParams["axes.titlesize"] = 'xx-large'
 plt.rcParams["xtick.labelsize"] = 'x-large'
 plt.rcParams["ytick.labelsize"] = 'x-large'
 ###########################################
-### dictionnary units
+### dictionary units
 ### each key must be an input parameter
 ###########################################
 d_units = {}
@@ -67,6 +68,32 @@ d_units['EJECTA_co_Volume0'] = 'cm^3'
 d_units['EJECTA_radius0']= 'cm'
 d_units['EJECTA_theta']= 'rad'
 d_units['tag']=''
+###########################################
+def Generate_inputs(dico):
+    """
+    Input: dictionary of the form
+        {key: array of values to explore}
+
+    Return:
+        a list of dictionaries
+
+    """
+    keys = dico.keys()
+    comb = tuple(itertools.product(*dico.values()))
+    num = len(comb)
+
+    out = [{akey: aval for akey,aval in zip(keys,vals)}
+           for vals in comb]
+
+    ### add a tag to differentiate the models
+    tags = ['m'+str(i+1).rjust(len(str(num)),'0') for i in range(num)]
+    for i,adico in enumerate(out):
+        adico['tag'] = tags[i]
+
+    print ('Generating %i models'%num)
+    return out
+
+
 ###########################################
 class GRB(object):
     """This class defines a transient lightcurve model. 
@@ -679,9 +706,9 @@ class GRB(object):
         This function computes the time derivatives
         and is aimed to be passed to scipy.odeint()
 
-        This determines its signature :
+        This determines its signature:
 
-        Y : the unkknown
+        Y : the unknowns
 
         T : time
 
@@ -1133,8 +1160,10 @@ class GRB(object):
         
 if __name__=='__main__':
 
-    #Time array
-    #time = np.logspace(0,6,200)
+    ranges = {}
+    ranges['NS_B'] = np.logspace(15,17,15)
+    ranges['NS_mass'] = (1.4,)
+    database = Generate_inputs(ranges)
 
     ## modelling of GRB 061006 with dipole + power law by Gompertz et al 2013
     GRB_061006 = {}
