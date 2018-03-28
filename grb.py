@@ -51,7 +51,7 @@ d_units['AG_alpha'] = ''
 d_units['DISK_mass0'] = 'g'
 d_units['DISK_radius'] = 'cm'
 d_units['DISK_alpha'] = ''
-d_units['DISK_cs'] = 'cm/s'
+d_units['DISK_aspect_ratio'] = ''
 d_units['DISK_eta_prop'] = ''
 d_units['EOS_Mtov'] = 'g'
 d_units['EOS_alpha'] = ''
@@ -146,7 +146,7 @@ class GRB(object):
                  DISK_mass0=0.1,
                  DISK_radius=500.0e5, # 500 km
                  DISK_alpha=0.1, # disk viscosity parameter
-                 DISK_cs=1.e7, # sound speed in the disk (100km/s)
+                 DISK_aspect_ratio=1., # Aspect ratio H/R
                  DISK_eta_prop=1,
                  EOS_Mtov=2.18, # Msun
                  EOS_alpha=0.0766,
@@ -195,8 +195,8 @@ class GRB(object):
         DISK_alpha : float
                 disk viscosity parameter
 
-        DISK_cs : float
-                sound speed in the disk
+        DISK_aspect_ratio : float
+                disk aspect ratio H/R
 
         DISK_eta_prop : float
                 propeller efficiency factor
@@ -394,14 +394,15 @@ class GRB(object):
         #####################################################
         ## Inconsistent prescription used in Gompertz 2014...
         #####################################################
-        self.viscous_time = self.DISK_radius**2
-        self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius)
+        #self.viscous_time = self.DISK_radius**2
+        #self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius)
 
         #####################################################
-        ## More consistent definition of the viscous time (?)
+        ## More consistent definition of the viscous time....
         #####################################################
-        # cs = self.Rdisk0*self.OmegaKep/np.sqrt(2)*(self.R/self.Rdisk0)**1.5
-        # self.viscous_time = self.Rdisk0**2 / (3. * self.alpha_disk * cs * self.Rdisk0)
+        H = self.DISK_radius * self.DISK_aspect_ratio
+        cs = H*self.OmegaKep*(self.NS_radius/self.DISK_radius)**1.5
+        self.viscous_time = self.DISK_radius**2 / (3. * self.DISK_alpha * cs * H)
 
         ######################
         ## don't forget units
