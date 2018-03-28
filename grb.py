@@ -249,9 +249,6 @@ class GRB(object):
         ######################
         ## Time integration
         ######################
-#        Y0 = self.Initial_conditions()
-
-        #self.Eval_Omega(time)
         self.Time_integration(time)
 
         ######################
@@ -261,11 +258,7 @@ class GRB(object):
         self.Eval_radii(time)
         self.Eval_torques(time)
         self.Eval_diag(time)
-        self.Eval_L_rad(time)
-        self.Eval_L_dip()
-        self.Eval_L_prop(time)
-        self.Eval_L_tot(time)
-        self.Eval_LX_free()
+        self.Eval_LX_free(time)
         self.Eval_LX_trap(time)
 
         ######################
@@ -309,9 +302,9 @@ class GRB(object):
                                 getattr(self,afield+'_units'))
             print (info)
         print(header.format('-'))
-    ########################################
-    ### definition of the derived parameters
-    ########################################
+    #################################################
+    ### Evaluation of the derived (scalar) parameters
+    #################################################
     def Eval_MomentOfInertia(self):
         """
         Set the magnetar moment of inertia
@@ -379,6 +372,7 @@ class GRB(object):
 
         """
         self.Omega0 = 2*np.pi/self.NS_period
+        self.Omega0_units = "s^-1"
 
 
     def Eval_Tc(self):
@@ -417,6 +411,34 @@ class GRB(object):
         self.L_em0 = num/den
         self.L_em0_units = 'ergs/s'
 
+    def Eval_critical_angular_velocity(self):
+        """
+        Sun, Zhang & Gao (2017)
+        eq. (25)
+
+        NS collapse for Omega < Omega_c (P>Pc)
+
+        Rem: assume constant NS mass
+
+        """
+        num = self.NS_mass - self.EOS_Mtov
+
+        if num<0:
+            ## then NS always stable
+            self.Omega_c = -1.
+
+        else:
+            den = self.EOS_alpha * self.EOS_Mtov
+            Pc = (num/den)**(1./self.EOS_beta)
+            self.Omega_c = 2*np.pi/Pc
+
+    ##########################################################
+    ### Functions computing time-dependent derived quantities:
+    ### Characteristic radii
+    ### Torques
+    ### Rotational and gravitational energy
+    ### Accretion rate
+    ##########################################################
     def LC_radius(self,Omega=None):
         """
         Light cylinder radius (for a given NS rotation)
@@ -568,6 +590,16 @@ class GRB(object):
 
         return out
 
+    ###############################################
+    ### Functions computing the time derivatives of
+    ### NS spin and Ejecta-related quantities:
+    ### Omega
+    ### co_Time
+    ### Gamma
+    ### co_Eint
+    ### co_Volume
+    ### Radius
+    ###############################################
     def Omega_dot(self,Omega,T):
         """
         Time derivative of the NS spin used in the propeller model
@@ -607,13 +639,13 @@ class GRB(object):
         Doppler = self.Doppler_factor(Gamma)
         beta = self.Beta(Gamma)
 
-        L_dip = self.Luminosity_dipole(Omega,T)
-        L_prop = self.Luminosity_propeller(Omega,T)
-        L_radioactivity = self.L_radioactivity(co_Time,Gamma)
-        L_electrons = self.L_electrons(co_Eint,Gamma,co_Volume,Radius)
+        L_dip   = self.Luminosity_dipole(Omega,T)
+        L_prop  = self.Luminosity_propeller(Omega,T)
+        L_radio = self.Luminosity_radioactivity(co_Time,Gamma)
+        L_elect = self.Luminosity_electrons(co_Eint,Gamma,co_Volume,Radius)
 
-        L1 = L_dip + L_prop + L_radioactivity - L_electrons
-        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radioactivity - L_electrons
+        L1 = L_dip + L_prop + L_radio - L_elect
+        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radio - L_elect
 
         ##########
         ### output
@@ -636,12 +668,13 @@ class GRB(object):
         ##########################
         Doppler = self.Doppler_factor(Gamma)
         beta = self.Beta(Gamma)
-        L_dip = self.Luminosity_dipole(Omega,T)
-        L_prop = self.Luminosity_propeller(Omega,T)
-        L_radioactivity = self.L_radioactivity(co_Time,Gamma)
-        L_electrons = self.L_electrons(co_Eint,Gamma,co_Volume,Radius)
 
-        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radioactivity - L_electrons
+        L_dip   = self.Luminosity_dipole(Omega,T)
+        L_prop  = self.Luminosity_propeller(Omega,T)
+        L_radio = self.Luminosity_radioactivity(co_Time,Gamma)
+        L_elect = self.Luminosity_electrons(co_Eint,Gamma,co_Volume,Radius)
+
+        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radio- L_elect
 
         ##########
         ### output
@@ -665,6 +698,10 @@ class GRB(object):
         rdot = beta*self.lightspeed/(1.-beta)
         return np.ascontiguousarray(rdot)
 
+    ############################################
+    ### Methods related to the time integration:
+    ### initial conditions, RHS, integration
+    ############################################
     def Initial_conditions(self):
         IC = (self.Omega0,
               self.EJECTA_co_Time0,
@@ -681,7 +718,7 @@ class GRB(object):
 
         This determines its signature :
 
-        Y : the unkknown
+        Y : the unknown
 
         T : time
 
@@ -735,48 +772,31 @@ class GRB(object):
         (self.Omega, self.co_Time, self.Gamma, self.co_Eint,
         self.co_Volume, self.Radius) = sol.T
 
-    def Eval_Omega(self,T):
-        """
-        Propeller model from Gompertz et al. 2014
 
-        """
-        ## Time integration with LSODA from FORTRAN library ODEPACK
-        Omega=odeint(self.Omega_dot,self.Omega0,T)[:,0]
-        self.Omega = Omega
-
-    def Eval_critical_angular_velocity(self):
-        """
-        Sun, Zhang & Gao (2017)
-        eq. (25)
-
-        NS collapse for Omega < Omega_c (P>Pc)
-
-        Rem: assume constant NS mass
-
-        """
-        num = self.NS_mass - self.EOS_Mtov
-
-        if num<0:
-            ## then NS always stable
-            self.Omega_c = -1.
-
-        else:
-            den = self.EOS_alpha * self.EOS_Mtov
-            Pc = (num/den)**(1./self.EOS_beta)
-            self.Omega_c = 2*np.pi/Pc
-
-
+    ##################################
+    ### Functions computing individual 
+    ### luminosity components 
+    ##################################
     def Luminosity_dipole(self,Omega,T):
-
+        """
+        Dipole spindown luminosity, for a general 
+        time evolution of the NS angular velocity
+        """
         Ndip = self.Torque_spindown(T,Omega)
         ldip = -self.NS_eta_dip * Ndip * Omega
 
         return ldip
 
     def Luminosity_propeller(self,Omega,T):
+        """
+        Propeller luminosity, taking into account
+        positive and negative torques due to the 
+        interaction with the accretion disk
+        From Gompertz et al. (2014)
+        """
 
         ### intermediate variables
-        Mdot=self.Accretion_rate(T)
+        Mdot = self.Accretion_rate(T)
         Nacc = self.Torque_accretion(T,Omega)
         rmag = self.Magnetospheric_radius(T,Omega)
 
@@ -785,6 +805,52 @@ class GRB(object):
         lprop*= self.DISK_eta_prop
 
         return lprop
+
+    def Luminosity_radioactivity(self,cotime,Gamma):
+        """
+        Eq. (16) Sun et al. (2017)
+
+        """
+        Doppler = self.Doppler_factor(Gamma)
+        prefactor = Doppler**2 * 4e49*self.EJECTA_mass/1e-2/self.Msun
+
+        out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_co_T0)/self.EJECTA_co_TSIGMA))**1.3
+        out*=prefactor
+        
+        return out
+
+    def Luminosity_electrons(self,Eint,Gamma,Volume,Radius):
+        """
+        Eq. (20) Sun (2017)
+
+        """
+        Doppler = self.Doppler_factor(Gamma)
+        tau = self.Optical_depth(Gamma,Volume,Radius)
+
+        where_ejecta_thin = tau<=1
+
+        out = Doppler**2 * Eint*self.lightspeed*Gamma/(tau*Radius)
+
+        out[where_ejecta_thin]*= tau[where_ejecta_thin]
+
+        return out
+    def Luminosity_AG(self,T):
+        """
+        Loss function
+        Limp * T**(-alpha)
+        Deprecated, not used in the free/trapped model
+        """
+        out = self.AG_Eimp * (T/self.AG_T0)**(-self.AG_alpha)
+        return out
+
+    def Luminosity_EM(self,T):
+        """
+        Analytic dipole spindown luminosity as a function of time 
+        Eq. (7) of Zhang & Meszaros (2001)
+        Deprecated, not used in the free/trapped model
+        """
+        out = self.NS_eta_dip*self.L_em0/(1.+T/self.T_em)**2
+        return out
 
     ##############################################
     ## Function definitions for the trapped zone
@@ -807,34 +873,6 @@ class GRB(object):
 
         return np.ascontiguousarray(out)
 
-    def L_radioactivity(self,cotime,Gamma):
-        """
-        Eq. (16) Sun et al. (2017)
-
-        """
-        Doppler = self.Doppler_factor(Gamma)
-        prefactor = Doppler**2 * 4e49*self.EJECTA_mass/1e-2/self.Msun
-
-        out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_co_T0)/self.EJECTA_co_TSIGMA))**1.3
-        out*=prefactor
-        
-        return out
-
-    def L_electrons(self,Eint,Gamma,Volume,Radius):
-        """
-        Eq. (20) Sun (2017)
-
-        """
-        Doppler = self.Doppler_factor(Gamma)
-        tau = self.Optical_depth(Gamma,Volume,Radius)
-
-        where_ejecta_thin = tau<=1
-
-        out = Doppler**2 * Eint*self.lightspeed*Gamma/(tau*Radius)
-
-        out[where_ejecta_thin]*= tau[where_ejecta_thin]
-
-        return out
 
     def Temperature(self,Gamma,Eint,Volume,Radius):
         """
@@ -855,67 +893,17 @@ class GRB(object):
     ### accretion + propeller, radiative losses)
     ### X-Ray Lightcurves from free/trapped zones
     #############################################
-    def Eval_L_tot(self,T):
-        """
-        Luminosity function 
-        sum of the different contributions
-        eq(1)
-
-        """
-        Omega = self.Omega
-        self.L_tot = self.L_dip + self.L_prop + self.L_rad
-
-        self.L_tot_units = 'erg/s'
-
-    def Eval_L_rad(self,T):
-        """
-        Loss function
-        Limp * T**(-alpha)
-        """
-        self.L_rad = self.AG_Eimp * (T/self.AG_T0)**(-self.AG_alpha)
-        
-    def Eval_L_dip(self):
-        """
-        Dipole spindown luminosity for a generic spin evolution
-        """
-        #####################################################
-        ## Inconsistent prescription in Gompertz
-        ## (when modified spindown is used, Bucciantini 2006)
-        #####################################################
-        #self.L_dip = self.eta_dip * 1./6. * self.mu**2 * self.Omega**4 / self.lightspeed**3
-
-        self.L_dip = -self.NS_eta_dip * self.N_dip * self.Omega
-
-    def Eval_L_prop(self,T):
-        """
-        Propeller Luminosity
-        """
-        ## check not necessary ?
-        if (self.DISK_eta_prop > 0): 
-            Omega=self.Omega
-            Mdot=self.Accretion_rate(T)
-            r_mag=self.r_mag
-            Nacc=self.N_acc
-            out = self.DISK_eta_prop * (- Nacc*Omega - self.gravconst*self.NS_mass*Mdot/r_mag )
-            out[out<0.] = 0.
-            self.L_prop = out
-        else:
-            self.L_prop = 0. * T
-    
-    def L_em(self,T):
-        """
-        Source function due to dipole radiation
-        eq. (7) of Zhang & Meszaros (2001)
-        """
-        out = self.NS_eta_dip*self.L_em0/(1.+T/self.T_em)**2
-
-        return out
-
-    def Eval_LX_free(self):
+    def Eval_LX_free(self,T):
         """
         X-Ray luminosity from dipole spindown and propeller
         """
+        self.L_dip = self.Luminosity_dipole(self.Omega,T)
+        self.L_prop = self.Luminosity_propeller(self.Omega,T)
         self.LX_free = self.L_dip + self.L_prop  
+        
+        self.L_dip_units   = 'ergs/s'
+        self.L_prop_units  = 'ergs/s'
+        self.LX_free_units = 'ergs/s'
     
     def Eval_LX_trap(self,T):
         """
@@ -936,6 +924,7 @@ class GRB(object):
         #Floor value between optically thick and thin regime
         L_bb[L_bb<=0] = 1.
         self.LX_trap = L_wind + L_bb 
+        self.LX_trap_units = 'ergs/s'
         
 
     #########################################
@@ -953,6 +942,10 @@ class GRB(object):
         self.r_mag = self.Magnetospheric_radius(T,Omega)
         self.r_cor = self.Corotation_radius(Omega)
 
+        self.r_lc_units  = 'cm'
+        self.r_mag_units = 'cm'
+        self.r_cor_units = 'cm'
+
     def Eval_torques(self,T):
         """
         Compute the various torques
@@ -960,6 +953,9 @@ class GRB(object):
         Omega=self.Omega
         self.N_dip = self.Torque_spindown(T,Omega)
         self.N_acc = self.Torque_accretion(T,Omega)
+
+        self.N_dip_units = 'erg'
+        self.N_acc_units = 'erg'
 
     def Eval_diag(self,T):
         """
@@ -969,6 +965,10 @@ class GRB(object):
         self.Mdot = self.Accretion_rate(T)
         self.fast = (self.r_mag / self.r_cor)**1.5
         self.beta = self.E_rot(Omega)/abs(self.E_bind())
+
+        self.Mdot_units = 'g/s'
+        self.fast_units = ''
+        self.beta_units = ''
 
     ########################################
     ### definition of the plotting functions
@@ -992,25 +992,20 @@ class GRB(object):
                 parameter to save the plot
                 "path/name.format"
         """
-        fig,ax = plt.subplots(2,1,figsize=(6,8))
+#        fig,ax = plt.subplots(2,1,figsize=(6,8))
+        fig,ax = plt.subplots()
 
-        ax[0].loglog(T,self.L_tot,'r-',linewidth=3.0,label=r'$L_{tot}$') 
-        ax[0].loglog(T,self.L_rad,'b--',linewidth=2.0,label=r'$L_{imp}$')
-        ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_{dip}$')
-        #ax.loglog(T,self.L_em(T),'y-.',label=r'$L_{em}$')
-        if self.DISK_eta_prop > 0:
-            ax[0].loglog(T,self.L_prop,'g:',label=r'$L_{prop}$')
+        ax.loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$') 
+        ax.loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$') 
+        ax.loglog(T,self.L_dip,'k-.',label=r'$L_\text{dip}$')
+        ax.loglog(T,self.L_prop,'g:',label=r'$L_\text{prop}$')
 
-        ax[1].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$') 
-        ax[1].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$') 
         ############
         ### labels
         ############
-        for i in [0,1]:
-            ax[i].legend(fontsize='x-large')
-            ax[i].set_ylabel(r'Luminosity [erg/s]')
-            
-        ax[1].set_xlabel(r'time [s]')
+        ax.legend(fontsize='x-large')
+        ax.set_ylabel(r'Luminosity [erg/s]')
+        ax.set_xlabel(r'time [s]')
 
         ##############################
         ### set axis limits by hand...
@@ -1170,9 +1165,8 @@ if __name__=='__main__':
         grb = GRB(**GRB_061006prop)
         fig,ax=grb.PlotLuminosity(grb.time)
         ### reset axes by hand
-#        ax = plt.gca()
-        for i in np.arange(ax.size):
-            ax[i].set(xlim=[1.,1e8],ylim=[1e22,1e52])
+        ax = plt.gca()
+        ax.set(xlim=[1.,1e8],ylim=[1e22,1e52])
 
         #grb.PlotRadii(grb.time)
 
