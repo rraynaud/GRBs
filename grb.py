@@ -151,7 +151,7 @@ class GRB(object):
                  EOS_Mtov=2.18, # Msun
                  EOS_alpha=0.0766,
                  EOS_beta=-2.738,
-                 EJECTA_mass=0.1,
+                 EJECTA_mass=0.01,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
                  EJECTA_theta=0.,
@@ -857,7 +857,8 @@ class GRB(object):
         time evolution of the NS angular velocity
         """
         Ndip = self.Torque_spindown(T,Omega)
-        ldip = -self.NS_eta_dip * Ndip * Omega
+#        ldip = -self.NS_eta_dip * Ndip * Omega
+        ldip = - Ndip * Omega
 
         return ldip
 
@@ -876,7 +877,7 @@ class GRB(object):
 
         ### output
         lprop = - Nacc*Omega - self.gravconst*self.NS_mass*Mdot/rmag
-        lprop*= self.DISK_eta_prop
+#        lprop*= self.DISK_eta_prop
 
         return lprop
 
@@ -955,7 +956,7 @@ class GRB(object):
         tau = self.Optical_depth(Gamma,Volume,Radius)
         where_ejecta_thin = tau<=1
 
-        out = (Eint/ self.radiation_const / Volume)**(0.25)
+        out = (Eint / self.radiation_const / Volume / tau)**(0.25)
         
         out[where_ejecta_thin] *= tau[where_ejecta_thin]**(0.25)
 
@@ -973,7 +974,8 @@ class GRB(object):
         """
         self.L_dip = self.Luminosity_dipole(self.Omega,T)
         self.L_prop = self.Luminosity_propeller(self.Omega,T)
-        self.LX_free = self.L_dip + self.L_prop  
+        self.LX_free = (self.NS_eta_dip    * self.L_dip + 
+                        self.DISK_eta_prop * self.L_prop)  
         
         self.L_dip_units   = 'ergs/s'
         self.L_prop_units  = 'ergs/s'
@@ -986,7 +988,7 @@ class GRB(object):
         tau = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
         L_wind = np.exp(-tau) * self.LX_free
 
-        nu = 1.e4 * self.Ev_to_Hz
+        nu = 1.e3 * self.Ev_to_Hz
 
         Doppler = self.Doppler_factor(self.Gamma)
         Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,self.Radius)
@@ -997,6 +999,9 @@ class GRB(object):
 
         #Floor value between optically thick and thin regime
         L_bb[L_bb<=0] = 1.
+        self.L_bb = L_bb
+        self.L_elect = self.Luminosity_electrons(self.co_Eint,self.Gamma,self.co_Volume,self.Radius)
+        self.L_radio = self.Luminosity_radioactivity(self.co_Time,self.Gamma)
         self.LX_trap = L_wind + L_bb 
         self.LX_trap_units = 'ergs/s'
         
@@ -1068,21 +1073,27 @@ class GRB(object):
                 parameter to save the plot
                 "path/name.format"
         """
-#        fig,ax = plt.subplots(2,1,figsize=(6,8))
-        fig,ax = plt.subplots()
+        fig,ax = plt.subplots(2,1,figsize=(6,8))
+#        fig,ax = plt.subplots()
 
-        ax.loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$') 
-        ax.loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$') 
-        ax.loglog(T,self.L_dip,'k-.',label=r'$L_\text{dip}$')
-        ax.loglog(T,self.L_prop,'g:',label=r'$L_\text{prop}$')
+        ax[0].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$') 
+        ax[0].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$') 
+        ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_\text{dip}$')
+        ax[0].loglog(T,self.L_prop,'g:',label=r'$L_\text{prop}$')
 
+        ax[1].loglog(T,self.L_dip+self.L_prop,'r-',linewidth=3,label=r'$L_\text{sd}$')
+        ax[1].loglog(T,self.L_radio,'b--',linewidth=3,label=r'$L_\text{radio}$')
+        ax[1].loglog(T,self.L_elect,'g:',linewidth=3,label=r'$L_\text{elect}$')
         ############
         ### labels
         ############
-        ax.legend(fontsize='x-large')
-        ax.set_ylabel(r'Luminosity [erg/s]')
-        ax.set_xlabel(r'time [s]')
+        ax[0].legend(fontsize='x-large')
+        ax[0].set_ylabel(r'Luminosity [erg/s]')
+        ax[0].set_xlabel(r'time [s]')
 
+        ax[1].legend(fontsize='x-large')
+        ax[1].set_ylabel(r'Luminosity [erg/s]')
+        ax[1].set_xlabel(r'time [s]')
         ##############################
         ### set axis limits by hand...
         ##############################
@@ -1246,8 +1257,9 @@ if __name__=='__main__':
         grb = GRB(**GRB_061006prop)
         fig,ax=grb.PlotLuminosity(grb.time)
         ### reset axes by hand
-        ax = plt.gca()
-        ax.set(xlim=[1.,1e8],ylim=[1e22,1e52])
+#        ax = plt.gca()
+        for i in np.arange(ax.size):
+            ax[i].set(xlim=[1.,1e8],ylim=[1e30,1e52])
 
         #grb.PlotRadii(grb.time)
 
