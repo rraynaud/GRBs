@@ -1123,7 +1123,7 @@ class GRB(object):
 
         """
         if filename is None:
-            filename = '.'join((tag,myformat))
+            filename = '.'.join((self.tag,myformat))
         ##########################################
         ## A - short way
         ##
