@@ -306,20 +306,23 @@ class GRB(object):
     ##########################################################
     def Info(self):
         """print a summary"""
-        control_param = ('NS_B','NS_period','NS_radius','NS_mass',
-                         'AG_alpha','AG_Eimp','AG_T0',
-                         'DISK_mass0','DISK_radius','DISK_alpha','DISK_cs',
-                         'NS_eta_dip','DISK_eta_prop')
-        derived_param = ('T_em','Tc','I','L_em0','mu',
-                         'viscous_time','Mdot0','OmegaKep')
+        control_param = list(self.parameters.keys())
+        control_param.remove('tag')
+        control_param.remove('t_min')
+        control_param.remove('t_max')
+        control_param.remove('t_num')
+
+        derived_param = ['T_em','Tc','I','L_em0','mu',
+                         'viscous_time','Mdot0','OmegaKep']
+
         ### for the layout column width
         lenun = max([len(getattr(self,afield+'_units'))
                      for afield in control_param+derived_param])
         lensy = max([len(afield)
                      for afield in control_param+derived_param])
         
-        header = '{:-^%i}'%(lenun+lensy+2+8)
-        ligne = '{:%i} {:8.2e} {:%i}'%(lensy,lenun)
+        header = '{:-^%i}'%(lenun+lensy+2+8+1)
+        ligne = '{:%i} {: 8.2e} {:%i}'%(lensy,lenun)
         
         print (header.format('Model properties'))
         print (header.format('Input parameters'))
