@@ -1104,8 +1104,9 @@ class GRB(object):
         Parameter:
         ----------
 
-        filename : string
+        filename : string or None
                 like 'path/filename.ext'
+                if None, filename = 'tag.format'
 
         outputs : tuple of string
                 attributes to write in different columns
@@ -1121,7 +1122,7 @@ class GRB(object):
                 keyword arguments
 
         """
-        if filename=='auto':
+        if filename is None:
             filename = '.'join((tag,myformat))
         ##########################################
         ## A - short way
