@@ -1095,7 +1095,7 @@ class GRB(object):
     def WriteTable(self,
                    filename='out.fits',
                    outputs = ('time','L_tot'),
-                   format='fits',
+                   myformat='fits',
                    overwrite=True,
                    **kwargs):
         """
@@ -1121,6 +1121,8 @@ class GRB(object):
                 keyword arguments
 
         """
+        if filename=='auto':
+            filename = '.'join((tag,myformat))
         ##########################################
         ## A - short way
         ##
@@ -1131,7 +1133,7 @@ class GRB(object):
         datas = [getattr(self,name) for name in outputs]
         table = Table(datas, names=outputs, meta=self.parameters)
         table.write(filename,
-                    format=format,
+                    format=myformat,
                     overwrite=overwrite,**kwargs)
 
         # #######################
