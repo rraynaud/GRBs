@@ -97,6 +97,21 @@ def Generate_inputs(dico):
 ###########################################
 class GRB(object):
     """This class defines a transient lightcurve model. 
+    It implements a modified version of Sun et al. 2017, 
+    with Xray emission from a free zone and a trapped zone.
+    The spindown luminosity of the NS takes into account 
+    contributions from standard dipolar spindown and the 
+    propeller model.
+    
+    The main outputs are stored in the following class members:
+    LX_free --> Free zone luminosity
+    LX_trap --> Trapped zone luminosity
+    L_dip   --> Dipolar spindown luminosity
+    L_prop  --> Propeller spindown luminosity
+
+    Other time-dependent quantities are available, such as
+    characteristic radii, torques, optical depth and temperature 
+    of the ejecta, etc.
 
     Notes
     -----
@@ -282,11 +297,17 @@ class GRB(object):
         ### Light curves
         ######################
         ## outputs
+        self.Eval_LX_free(time)
+        self.Eval_LX_trap(time)
+
+        ######################
+        ### Further outputs
+        ######################
         self.Eval_radii(time)
         self.Eval_torques(time)
         self.Eval_diag(time)
-        self.Eval_LX_free(time)
-        self.Eval_LX_trap(time)
+        self.Eval_T_tau(time)
+        self.Eval_T_col(time)
 
         ######################
         ### print a summary
@@ -333,7 +354,7 @@ class GRB(object):
             print (info)
         print(header.format('-'))
     #################################################
-    ### Evaluation of the derived (scalar) parameters
+    ### Evaluation of the derived constant parameters
     #################################################
     def Eval_MomentOfInertia(self):
         """
@@ -461,6 +482,29 @@ class GRB(object):
             den = self.EOS_alpha * self.EOS_Mtov
             Pc = (num/den)**(1./self.EOS_beta)
             self.Omega_c = 2*np.pi/Pc
+
+    def Eval_T_tau(self,T):
+        """
+        Compute the time when the ejecta become optically thin
+        """
+        where_ejecta_thin = self.tau<=1
+        i = np.argmax(where_ejecta_thin)
+        if i > 0:
+            self.T_tau = T[i] 
+        else:
+            self.T_tau = None
+
+
+    def Eval_T_col(self,T):
+        """
+        Compute the time when the supramassive NS collapses to a BH
+        """
+        where_NS_is_unstable = self.Omega < self.Omega_c
+        i = np.argmax(where_NS_is_unstable)
+        if i > 0:
+            self.T_col = T[i] 
+        else:
+            self.T_col = None
 
     ##########################################################
     ### Functions computing time-dependent derived quantities:
@@ -995,6 +1039,8 @@ class GRB(object):
         self.Mdot = self.Accretion_rate(T)
         self.fast = (self.r_mag / self.r_cor)**1.5
         self.beta = self.E_rot(Omega)/abs(self.E_bind())
+        self.tau  = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
+        self.Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,self.Radius)
 
         self.Mdot_units = 'g/s'
         self.fast_units = ''
