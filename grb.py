@@ -1149,8 +1149,8 @@ class GRB(object):
         #plt.axhline(self.L_em0,label=r'$L_{em,0}$',ls='--',color='gray')
 
     def WriteTable(self,
-                   filename='out.fits',
-                   outputs = ('time','L_tot'),
+                   filename=None,
+                   outputs = ('time','LX_free','LX_trap'),
                    myformat='fits',
                    overwrite=True,
                    **kwargs):
