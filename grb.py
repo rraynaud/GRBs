@@ -3,7 +3,13 @@
 """
 Transient Lightcurve Modelling
 
-Based on Zhang & Meszaros (2001)
+References:
+-----------
+    - Zhang and Meszaros, 2001, ApJ, 552
+    - Gompertz et al., 2014, MNRAS, 438
+    - Sun et al., 2017, ApJ, 835:7
+    - Ai et al., arXiv:1802.00571v1
+
 """
 __author__="GRBs: Guilet, Raynaud, Bugli"
 __email__ ="jerome.guilet@cea.fr ; raphael.raynaud@cea.fr ; matteo.bugli@cea.fr"
@@ -68,6 +74,17 @@ d_units['EJECTA_co_Volume0'] = 'cm^3'
 d_units['EJECTA_radius0']= 'cm'
 d_units['EJECTA_theta']= 'rad'
 d_units['tag']=''
+###########################################
+## EOS database (Ai 2018, Table 1)
+## to be completed
+## usage : GRB(**inputs,**EOS['GM1'])
+###########################################
+EOS = {}
+EOS['GM1'] = {'EOS_Mtov' :2.37,
+              'EOS_alpha':0.0766, # check value ?
+              'EOS_beta' :-2.84,
+              'EOS_I'    :3.33e45,
+              'NS_radius':12.05e5,}
 ###########################################
 def Generate_inputs(dico):
     """
@@ -141,7 +158,7 @@ class GRB(object):
                  NS_period=1e-3,
                  NS_eta_dip=1,
                  AG_T0=10,
-                 AG_Eimp=1,
+                 AG_Eimp=-np.inf,
                  AG_alpha=0,
                  DISK_mass0=0.1,
                  DISK_radius=500.0e5, # 500 km
@@ -275,8 +292,8 @@ class GRB(object):
         self.Eval_MomentOfInertia()
         self.Eval_Omega0()
         self.Eval_T_em()
-        self.Eval_L_em0()
-        self.Eval_Tc()
+        #self.Eval_L_em0()
+        #self.Eval_Tc()
         self.Eval_magnetic_moment()
         self.Eval_OmegaKep()
         self.Eval_viscous_time()
@@ -285,8 +302,8 @@ class GRB(object):
         ######################
         ### fine tuning
         ######################
-        print ('Fine tuning ON...')
-        self.AG_Eimp = self.L_em0#*self.T0
+        #print ('Fine tuning ON...')
+        #self.AG_Eimp = self.L_em0#*self.T0
 
         ######################
         ## Time integration
@@ -326,8 +343,11 @@ class GRB(object):
         control_param.remove('t_max')
         control_param.remove('t_num')
 
-        derived_param = ['T_em','Tc','I','L_em0','mu',
-                         'viscous_time','Mdot0','OmegaKep']
+        # derived_param = ['T_em','Tc','I','L_em0','mu',
+        #                  'viscous_time','Mdot0','OmegaKep']
+        derived_param = ['time_collapse',
+                         'time_opacity','I',
+                         'critical_period','OmegaKep','time_spindown']
 
         ### for the layout column width
         lenun = max([len(getattr(self,afield+'_units'))
@@ -441,15 +461,18 @@ class GRB(object):
 
     def Eval_T_em(self):
         """
-        Set the dipole spin-down time
+        Compute the dipole spin-down time
         eq. (6) of Zhang & Meszaros (2001)
+
+        Set Attribute:
+                time_spindown
 
         """
         num = 3*self.lightspeed**3*self.I
         den = self.NS_B**2*self.NS_radius**6*self.Omega0**2
 
-        self.T_em = num/den
-        self.T_em_units = 's'
+        self.time_spindown = num/den
+        self.time_spindown_units = 's'
         
     def Eval_L_em0(self):
         """
@@ -477,12 +500,15 @@ class GRB(object):
 
         if num<0:
             ## then NS always stable
-            self.Omega_c = -1.
+            self.critical_period = -np.inf
+            self.Omega_c = -np.inf
 
         else:
             den = self.EOS_alpha * self.EOS_Mtov
-            Pc = (num/den)**(1./self.EOS_beta)
-            self.Omega_c = 2*np.pi/Pc
+            self.critical_period = (num/den)**(1./self.EOS_beta)
+            self.Omega_c = 2*np.pi/self.Pc
+
+        self.critical_period_units = 's'
 
     def Eval_T_tau(self,T):
         """
@@ -491,9 +517,11 @@ class GRB(object):
         where_ejecta_thin = self.tau<=1
         i = np.argmax(where_ejecta_thin)
         if i > 0:
-            self.T_tau = T[i] 
+            self.time_opacity = T[i]
         else:
-            self.T_tau = None
+            self.time_opacity = -1
+
+        self.time_opacity_units = 's'
 
 
     def Eval_T_col(self,T):
@@ -503,9 +531,11 @@ class GRB(object):
         where_NS_is_unstable = self.Omega < self.Omega_c
         i = np.argmax(where_NS_is_unstable)
         if i > 0:
-            self.T_col = T[i] 
+            self.time_collapse = T[i]
         else:
-            self.T_col = None
+            self.time_collapse = -np.inf
+
+        self.time_collapse_units = 's'
 
     ##########################################################
     ### Functions computing time-dependent derived quantities:
@@ -514,26 +544,20 @@ class GRB(object):
     ### Rotational and gravitational energy
     ### Accretion rate
     ##########################################################
-    def LC_radius(self,Omega=None):
+    def LC_radius(self,Omega):
         """
         Light cylinder radius (for a given NS rotation)
 
         """
-        if Omega is None:
-            Omega=self.Omega0
-
         out = self.lightspeed/Omega
 
         return np.ascontiguousarray(out)
 
-    def Magnetospheric_radius(self,T=0,Omega=None):
+    def Magnetospheric_radius(self,T,Omega):
         """
         Magnetospheric radius 
 
         """
-        if Omega is None:
-            Omega = self.Omega0
-            
         Mdot = self.Accretion_rate(T)
         r_lc = self.LC_radius(Omega)
         out = self.mu**(4./7) * (self.gravconst*self.NS_mass)**(-1./7) * Mdot**(-2./7)
@@ -543,23 +567,19 @@ class GRB(object):
 
         return out
 
-    def Corotation_radius(self,Omega=None):
+    def Corotation_radius(self,Omega):
         """
         Corotation radius (for a given NS mass and spin)
 
         """
-        if Omega is None:
-            Omega=self.Omega0
         out = (self.gravconst * self.NS_mass/ Omega**2)**(1./3)
         return out
 
-    def E_rot(self,Omega=None):
+    def E_rot(self,Omega):
         """ 
         Rotational energy of the NS
 
         """
-        if Omega is None:
-            Omega=self.Omega0
         out=0.5*self.I*Omega**2
         return out
 
@@ -858,8 +878,8 @@ class GRB(object):
         time evolution of the NS angular velocity
         """
         Ndip = self.Torque_spindown(T,Omega)
-#        ldip = -self.NS_eta_dip * Ndip * Omega
         ldip = - Ndip * Omega
+        #ldip*= -self.NS_eta_dip
 
         return ldip
 
@@ -878,7 +898,7 @@ class GRB(object):
 
         ### output
         lprop = - Nacc*Omega - self.gravconst*self.NS_mass*Mdot/rmag
-#        lprop*= self.DISK_eta_prop
+        #lprop*= self.DISK_eta_prop
 
         return lprop
 
@@ -1220,7 +1240,7 @@ class GRB(object):
 if __name__=='__main__':
 
     ranges = {}
-    ranges['NS_B'] = np.logspace(15,17,15)
+    ranges['NS_B'] = np.logspace(15,17,3)
     ranges['NS_mass'] = (1.4,)
     database = Generate_inputs(ranges)
 
