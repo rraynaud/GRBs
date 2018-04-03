@@ -262,8 +262,7 @@ class GRB(object):
         ##########################
         ## define integration time
         ##########################
-        time = np.logspace(t_min,t_max,t_num)
-        self.time = time
+        self.time = np.logspace(t_min,t_max,t_num)
         self.time_units = 's'
 
         ##############################
@@ -306,23 +305,23 @@ class GRB(object):
         ######################
         ## Time integration
         ######################
-        self.Time_integration(time)
+        self.Time_integration(self.time)
 
         ######################
         ### Light curves
         ######################
         ## outputs
-        self.Eval_LX_free(time)
-        self.Eval_LX_trap(time)
+        self.Eval_LX_free(self.time)
+        self.Eval_LX_trap(self.time)
 
         ######################
         ### Further outputs
         ######################
-        self.Eval_radii(time)
-        self.Eval_torques(time)
-        self.Eval_diag(time)
-        self.Eval_T_tau(time)
-        self.Eval_T_col(time)
+        self.Eval_radii(self.time)
+        self.Eval_torques(self.time)
+        self.Eval_diag(self.time)
+        self.Eval_T_tau(self.time)
+        self.Eval_T_col(self.time)
 
         ######################
         ### print a summary
