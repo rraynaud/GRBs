@@ -62,6 +62,7 @@ d_units['DISK_eta_prop'] = ''
 d_units['EOS_Mtov'] = 'g'
 d_units['EOS_alpha'] = ''
 d_units['EOS_beta'] = ''
+d_units['EOS_I'] = 'g cm^2'
 d_units['EJECTA_mass'] = 'g'
 d_units['EJECTA_opacity'] = 'cm^2/g'
 d_units['EJECTA_heating_efficiency']=''
@@ -77,7 +78,6 @@ d_units['tag']=''
 ###########################################
 ## EOS database (Ai 2018, Table 1)
 ## to be completed
-## usage : GRB(**inputs,**EOS['GM1'])
 ###########################################
 EOS = {}
 EOS['GM1'] = {'EOS_Mtov' :2.37,
@@ -168,6 +168,7 @@ class GRB(object):
                  EOS_Mtov=2.18, # Msun
                  EOS_alpha=0.0766,
                  EOS_beta=-2.738,
+                 EOS_I=3.33e45,
                  EJECTA_mass=0.01,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
@@ -246,9 +247,9 @@ class GRB(object):
         if sys.version_info.major==3:
             del self.parameters['__class__']
 
-        ###########################
-        ### astrophysical constants
-        ###########################
+        #################################
+        ### astrophysical constants (CGS)
+        #################################
         self.lightspeed = 299792458e2 # cm/s
         self.Msun = 1.98855e33 # g
         ### gravitational constant
@@ -256,7 +257,7 @@ class GRB(object):
         self.hPlanck = 6.6260755e-27
         self.kBoltzmann = 1.380658e-16
         self.radiation_const = 7.5646e-15
-        self.Ev_to_Hz = 1.602176565e-12 / self.hPlanck
+        self.Ev_to_Hz = 1.602176565e-12/self.hPlanck
 
         ##########################
         ## define integration time
@@ -280,16 +281,13 @@ class GRB(object):
         self.EOS_Mtov    *= self.Msun
         self.EJECTA_mass *= self.Msun
 
-        ##################
-        ### temporary fix
-        ##################
-        self.q=-2 ## assume dipole injection
-        self.q_units = ''
-
         ######################
-        ### derived quantities
+        ## derived quantities
         ######################
-        self.Eval_MomentOfInertia()
+        ## uncomment to use
+        ## Gompertz's definition
+        #self.Eval_MomentOfInertia()
+        ######################
         self.Eval_Omega0()
         self.Eval_T_em()
         #self.Eval_L_em0()
@@ -300,7 +298,7 @@ class GRB(object):
         self.Eval_Mdot0()
         self.Eval_critical_angular_velocity()
         ######################
-        ### fine tuning
+        ## fine tuning
         ######################
         #print ('Fine tuning ON...')
         #self.AG_Eimp = self.L_em0#*self.T0
@@ -346,7 +344,7 @@ class GRB(object):
         # derived_param = ['T_em','Tc','I','L_em0','mu',
         #                  'viscous_time','Mdot0','OmegaKep']
         derived_param = ['time_collapse',
-                         'time_opacity','I',
+                         'time_opacity',
                          'critical_period','OmegaKep','time_spindown']
 
         ### for the layout column width
@@ -388,8 +386,7 @@ class GRB(object):
         ### Gompertz (2014)
         norm = 0.35
         #################################
-        self.I = norm * self.NS_mass*self.NS_radius**2
-        self.I_units = 'g cm^2'
+        self.EOS_I = norm * self.NS_mass*self.NS_radius**2
 
     def Eval_magnetic_moment(self):
         """
@@ -453,6 +450,12 @@ class GRB(object):
         eq. (5) of Zhang & Meszaros (2001)
 
         """
+        ##################
+        ### temporary fix
+        ##################
+        self.q=-2 ## assume dipole injection
+        self.q_units = ''
+
         prefac = (self.AG_alpha+self.q+1)
         term2 = prefac*(self.AG_Eimp/(self.L_em0*self.AG_T0))**(1./prefac)
         
@@ -468,7 +471,7 @@ class GRB(object):
                 time_spindown
 
         """
-        num = 3*self.lightspeed**3*self.I
+        num = 3*self.lightspeed**3*self.EOS_I
         den = self.NS_B**2*self.NS_radius**6*self.Omega0**2
 
         self.time_spindown = num/den
@@ -480,7 +483,7 @@ class GRB(object):
         eq. (8) of Zhang & Meszaros (2001)
 
         """
-        num = self.I*self.Omega0**2
+        num = self.EOS_I*self.Omega0**2
         den = 2*self.T_em
 
         self.L_em0 = num/den
@@ -580,7 +583,7 @@ class GRB(object):
         Rotational energy of the NS
 
         """
-        out=0.5*self.I*Omega**2
+        out=0.5*self.EOS_I*Omega**2
         return out
 
     def E_bind(self):
@@ -709,7 +712,7 @@ class GRB(object):
         Ndip = self.Torque_spindown(T,Omega)
         Nacc = self.Torque_accretion(T,Omega)
 
-        out = (Ndip + Nacc)/self.I
+        out = (Ndip + Nacc)/self.EOS_I
 
         return np.ascontiguousarray(out)
 
@@ -1264,18 +1267,18 @@ if __name__=='__main__':
     GRB_061006prop['DISK_radius']=400.e5
     GRB_061006prop['NS_eta_dip']=0.05
     GRB_061006prop['DISK_eta_prop']=0.4
-    #GRB_061006prop['time']=time
+
 
     #GRBname = 'GRB061006'
     GRBname = 'GRB061006prop'
 
     if GRBname == 'GRB061006':
-        grb = GRB(**GRB_061006)
+        grb = GRB(**GRB_061006,**EOS['GM1'])
         grb.PlotLuminosity(grb.time)
         grb.PlotRadii(grb.time)
 
     if GRBname == 'GRB061006prop':
-        grb = GRB(**GRB_061006prop)
+        grb = GRB(**GRB_061006prop,**EOS['GM1'])
         fig,ax=grb.PlotLuminosity(grb.time)
         ## reset axes by hand
 #        ax = plt.gca()
