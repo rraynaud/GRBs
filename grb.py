@@ -312,16 +312,16 @@ class GRB(object):
         ######################
         ## outputs
         self.Eval_LX_free(self.time)
-        self.Eval_LX_trap(self.time)
+        self.Eval_LX_trap()
 
         ######################
         ### Further outputs
         ######################
         self.Eval_radii(self.time)
         self.Eval_torques(self.time)
-        self.Eval_diag(self.time)
-        self.Eval_T_tau(self.time)
-        self.Eval_T_col(self.time)
+        self.Eval_diagnostic_outputs(self.time)
+        self.Eval_T_tau(self.time) # ejecta become optically thin
+        self.Eval_T_col(self.time) # NS collapse
 
         ######################
         ### print a summary
@@ -1003,28 +1003,103 @@ class GRB(object):
         self.L_dip_units   = 'ergs/s'
         self.L_prop_units  = 'ergs/s'
         self.LX_free_units = 'ergs/s'
-    
-    def Eval_LX_trap(self,T):
+
+    def Integrand_blackbody(self,nu):
         """
-        X-Ray luminosity from trapped zone (Sun et al. 2017)
+        define the function we want to integrate
+        over a frequency range
+
+        Eq. (22) (Sun et al. 2017)
+
+        Parameter:
+        ----------
+
+        nu : 1D array (dtype=float)
+                frequency range in Hz
+
+        Returns:
+        --------
+
+        out : 2D array of size (nu,time)
+
+        """
+        out = np.empty((nu.size,self.t_num))
+
+        ##################
+        ### precalculation
+        ##################
+        Doppler = self.Doppler_factor(self.Gamma)
+        Temp = self.Temperature(self.Gamma,self.co_Eint,
+                                self.co_Volume,self.Radius)
+
+        prefactor = 8. * (np.pi * Doppler * self.Radius)**2
+        prefactor/= self.hPlanck**3 * self.lightspeed**2
+
+        ########################
+        ## loop over frequencies
+        ########################
+        for i,anu in enumerate(nu):
+            num = (self.hPlanck*anu/Doppler)**4
+            den = np.exp(self.hPlanck*anu/(Doppler*self.kBoltzmann*Temp)) - 1.
+            out[i] = prefactor*(num/den) / anu
+
+        return out
+
+    def Integrate_blackbody(self,keV_min,keV_max,samples=1000):
+        """
+        Numerical integration of black body spectrum
+        on a frequency range.
+
+        It uses numpy.trapz()
+
+        Parameters
+        ----------
+
+        keV_min, keV_max : float
+                bound of the frequency range
+
+        samples : int
+                number of sample points for integration
+
+        """
+        nu_min = keV_min*1e3*self.Ev_to_Hz
+        nu_max = keV_max*1e3*self.Ev_to_Hz
+
+        freqs = np.linspace(nu_min,nu_max,samples)
+        data = self.Integrand_blackbody(freqs)
+
+        #### integration
+        out = np.trapz(y=data, x=freqs, axis=0)
+        return out
+
+    def Eval_LX_trap(self):
+        """
+        X-Ray luminosity from trapped zone
+        (Sun et al. 2017)
         """
         tau = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
         L_wind = np.exp(-tau) * self.LX_free
 
+        ####################################
+        #################
+        ## Sun model
+        #################
         nu = 1.e3 * self.Ev_to_Hz
-
         Doppler = self.Doppler_factor(self.Gamma)
         Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,self.Radius)
         prefactor = 8. * (np.pi * Doppler * self.Radius)**2 / self.hPlanck**3 / self.lightspeed**2
         num = (self.hPlanck * nu / Doppler)**4
         den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
         L_bb = prefactor * num / den 
+        #################
+        ## or integration
+        #################
+        #L_bb = self.Integrate_blackbody(keV_min=0.3,keV_max=6)
+        ####################################
 
-        #Floor value between optically thick and thin regime
-        L_bb[L_bb<=0] = 1.
+        # Floor value between optically thick and thin regime
+        #L_bb[L_bb<=0] = 1.
         self.L_bb = L_bb
-        self.L_elect = self.Luminosity_electrons(self.co_Eint,self.Gamma,self.co_Volume,self.Radius)
-        self.L_radio = self.Luminosity_radioactivity(self.co_Time,self.Gamma)
         self.LX_trap = L_wind + L_bb 
         self.LX_trap_units = 'ergs/s'
         
@@ -1059,7 +1134,7 @@ class GRB(object):
         self.N_dip_units = 'erg'
         self.N_acc_units = 'erg'
 
-    def Eval_diag(self,T):
+    def Eval_diagnostic_outputs(self,T):
         """
         Compute various derived quantities
         """
@@ -1067,8 +1142,13 @@ class GRB(object):
         self.Mdot = self.Accretion_rate(T)
         self.fast = (self.r_mag / self.r_cor)**1.5
         self.beta = self.E_rot(Omega)/abs(self.E_bind())
-        self.tau  = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
-        self.Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,self.Radius)
+        self.tau  = self.Optical_depth(self.Gamma,
+                                       self.co_Volume,self.Radius)
+        self.Temp = self.Temperature(self.Gamma,self.co_Eint,
+                                     self.co_Volume,self.Radius)
+        self.L_elect = self.Luminosity_electrons(self.co_Eint,self.Gamma,
+                                                 self.co_Volume,self.Radius)
+        self.L_radio = self.Luminosity_radioactivity(self.co_Time,self.Gamma)
 
         self.Mdot_units = 'g/s'
         self.fast_units = ''
@@ -1104,9 +1184,9 @@ class GRB(object):
         ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_\text{dip}$')
         ax[0].loglog(T,self.L_prop,'g:',label=r'$L_\text{prop}$')
 
-        ax[1].loglog(T,self.L_dip+self.L_prop,'r-',linewidth=3,label=r'$L_\text{sd}$')
-        ax[1].loglog(T,self.L_radio,'b--',linewidth=3,label=r'$L_\text{radio}$')
-        ax[1].loglog(T,self.L_elect,'g:',linewidth=3,label=r'$L_\text{elect}$')
+        ax[1].loglog(T,self.L_dip+self.L_prop,'r-',linewidth=3,label=r'$L_\text{sd}$',color='m')
+        ax[1].loglog(T,self.L_radio,'b--',linewidth=3,label=r'$L_\text{radioactivity}$',color='k')
+        ax[1].loglog(T,self.L_elect,'g:',linewidth=3,label=r'$L_\text{electrons}$',color='brown')
         ############
         ### labels
         ############
