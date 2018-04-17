@@ -81,10 +81,30 @@ d_units['tag']=''
 ###########################################
 EOS = {}
 EOS['GM1'] = {'EOS_Mtov' :2.37,
-              'EOS_alpha':0.0766, # check value ?
+              'EOS_alpha':1.58e-10, 
               'EOS_beta' :-2.84,
               'EOS_I'    :3.33e45,
               'NS_radius':12.05e5,}
+EOS['Shen'] = {'EOS_Mtov' :2.18,
+               'EOS_alpha':4.678e-10, 
+               'EOS_beta' :-2.738,
+               'EOS_I'    :4.675e45,
+               'NS_radius':12.40e5,}
+EOS['BSk21'] = {'EOS_Mtov' :2.28,
+                'EOS_alpha':2.81e-10, 
+                'EOS_beta' :-2.75,
+                'EOS_I'    :4.37e45,
+                'NS_radius':11.08e5,}
+EOS['DD2'] = {'EOS_Mtov' :2.42,
+              'EOS_alpha':1.37e-10, 
+              'EOS_beta' :-2.88,
+              'EOS_I'    :5.43e45,
+              'NS_radius':11.89e5,}
+EOS['DDME2'] = {'EOS_Mtov' :2.48,
+                'EOS_alpha':1.966e-10, 
+                'EOS_beta' :-2.84,
+                'EOS_I'    :5.85e45,
+                'NS_radius':12.09e5,}
 ###########################################
 def Generate_inputs(dico):
     """
@@ -156,15 +176,15 @@ class GRB(object):
                  NS_mass=1.4,
                  NS_radius=1e6,
                  NS_period=1e-3,
-                 NS_eta_dip=1,
+                 NS_eta_dip=0.05,
                  AG_T0=10,
                  AG_Eimp=-np.inf,
                  AG_alpha=0,
-                 DISK_mass0=0.1,
-                 DISK_radius=500.0e5, # 500 km
+                 DISK_mass0=2.01e-2,
+                 DISK_radius=5.e7, # 500 km
                  DISK_alpha=0.1, # disk viscosity parameter
-                 DISK_aspect_ratio=1., # Aspect ratio H/R
-                 DISK_eta_prop=1,
+                 DISK_aspect_ratio=0.3, # Aspect ratio H/R
+                 DISK_eta_prop=0.4,
                  EOS_Mtov=2.18, # Msun
                  EOS_alpha=0.0766,
                  EOS_beta=-2.738,
@@ -173,7 +193,7 @@ class GRB(object):
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
                  EJECTA_theta=0.,
-                 EJECTA_Gamma0=1,
+                 EJECTA_Gamma0=1.,
                  EJECTA_co_T0=1.3, # eq. 15 Sun (2017)
                  EJECTA_co_TSIGMA=0.11,
                  EJECTA_co_Time0=1.,
@@ -508,7 +528,7 @@ class GRB(object):
         else:
             den = self.EOS_alpha * self.EOS_Mtov
             self.critical_period = (num/den)**(1./self.EOS_beta)
-            self.Omega_c = 2*np.pi/self.Pc
+            self.Omega_c = 2*np.pi/self.critical_period
 
         self.critical_period_units = 's'
 
@@ -636,6 +656,7 @@ class GRB(object):
         ## Standard dipole spindown, no wind or disk
         ############################################
         out = - 1./6. * self.mu**2 * Omega**3 / self.lightspeed**3
+        out=np.ascontiguousarray(out)
 
         #########################
         ## check NS stability
@@ -702,8 +723,6 @@ class GRB(object):
         Time derivative of the NS spin used in the propeller model
 
         """
-        Mdot = self.Accretion_rate(T)
-
         r_lc = self.LC_radius(Omega)
         r_mag = self.Magnetospheric_radius(T,Omega)
         r_corot = self.Corotation_radius(Omega)
@@ -900,7 +919,7 @@ class GRB(object):
 
         ### output
         lprop = - Nacc*Omega - self.gravconst*self.NS_mass*Mdot/rmag
-        #lprop*= self.DISK_eta_prop
+        lprop[lprop<0.] = 0.
 
         return lprop
 
@@ -1097,8 +1116,6 @@ class GRB(object):
         #L_bb = self.Integrate_blackbody(keV_min=0.3,keV_max=6)
         ####################################
 
-        # Floor value between optically thick and thin regime
-        #L_bb[L_bb<=0] = 1.
         self.L_bb = L_bb
         self.LX_trap = L_wind + L_bb 
         self.LX_trap_units = 'ergs/s'
@@ -1342,10 +1359,10 @@ if __name__=='__main__':
     GRB_061006prop['NS_period'] = 1.51e-3
     GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['AG_alpha'] = 5.0
-    GRB_061006prop['DISK_mass0']=2.01e-2
-    GRB_061006prop['DISK_radius']=400.e5
-    GRB_061006prop['NS_eta_dip']=0.05
-    GRB_061006prop['DISK_eta_prop']=0.4
+#    GRB_061006prop['DISK_mass0']=2.01e-2
+#    GRB_061006prop['DISK_radius']=400.e5
+#    GRB_061006prop['NS_eta_dip']=0.05
+#    GRB_061006prop['DISK_eta_prop']=0.4
 
 
     #GRBname = 'GRB061006'
