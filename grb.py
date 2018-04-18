@@ -80,26 +80,26 @@ d_units['tag']=''
 ## to be completed
 ###########################################
 EOS = {}
-EOS['GM1'] = {'EOS_Mtov' :2.37,
-              'EOS_alpha':1.58e-10, 
-              'EOS_beta' :-2.84,
-              'EOS_I'    :3.33e45,
-              'NS_radius':12.05e5,}
-EOS['Shen'] = {'EOS_Mtov' :2.18,
-               'EOS_alpha':4.678e-10, 
-               'EOS_beta' :-2.738,
-               'EOS_I'    :4.675e45,
-               'NS_radius':12.40e5,}
+EOS['GM1']   = {'EOS_Mtov' :2.37,
+                'EOS_alpha':1.58e-10, 
+                'EOS_beta' :-2.84,
+                'EOS_I'    :3.33e45,
+                'NS_radius':12.05e5,}
+EOS['Shen']  = {'EOS_Mtov' :2.18,
+                'EOS_alpha':4.678e-10, 
+                'EOS_beta' :-2.738,
+                'EOS_I'    :4.675e45,
+                'NS_radius':12.40e5,}
 EOS['BSk21'] = {'EOS_Mtov' :2.28,
                 'EOS_alpha':2.81e-10, 
                 'EOS_beta' :-2.75,
                 'EOS_I'    :4.37e45,
                 'NS_radius':11.08e5,}
-EOS['DD2'] = {'EOS_Mtov' :2.42,
-              'EOS_alpha':1.37e-10, 
-              'EOS_beta' :-2.88,
-              'EOS_I'    :5.43e45,
-              'NS_radius':11.89e5,}
+EOS['DD2']   = {'EOS_Mtov' :2.42,
+                'EOS_alpha':1.37e-10, 
+                'EOS_beta' :-2.88,
+                'EOS_I'    :5.43e45,
+                'NS_radius':11.89e5,}
 EOS['DDME2'] = {'EOS_Mtov' :2.48,
                 'EOS_alpha':1.966e-10, 
                 'EOS_beta' :-2.84,
@@ -1103,17 +1103,19 @@ class GRB(object):
         #################
         ## Sun model
         #################
-        nu = 1.e3 * self.Ev_to_Hz
+        nu = 5.e2 * self.Ev_to_Hz
         Doppler = self.Doppler_factor(self.Gamma)
-        Temp = self.Temperature(self.Gamma,self.co_Eint,self.co_Volume,self.Radius)
-        prefactor = 8. * (np.pi * Doppler * self.Radius)**2 / self.hPlanck**3 / self.lightspeed**2
+        Temp = self.Temperature(self.Gamma,self.co_Eint,
+                                self.co_Volume,self.Radius)
+        prefactor = 8. * (np.pi * Doppler * self.Radius)**2 
+        prefactor/= self.hPlanck**3 * self.lightspeed**2
         num = (self.hPlanck * nu / Doppler)**4
         den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
         L_bb = prefactor * num / den 
         #################
         ## or integration
         #################
-        #L_bb = self.Integrate_blackbody(keV_min=0.3,keV_max=6)
+#        L_bb = self.Integrate_blackbody(keV_min=0.3,keV_max=6.)
         ####################################
 
         self.L_bb = L_bb
@@ -1204,14 +1206,15 @@ class GRB(object):
         ax[1].loglog(T,self.L_dip+self.L_prop,'r-',linewidth=3,label=r'$L_\text{sd}$',color='m')
         ax[1].loglog(T,self.L_radio,'b--',linewidth=3,label=r'$L_\text{radioactivity}$',color='k')
         ax[1].loglog(T,self.L_elect,'g:',linewidth=3,label=r'$L_\text{electrons}$',color='brown')
+        ax[1].loglog(T,self.L_bb,'g.-',linewidth=3,label=r'$L_\text{bb}$',color='orange')
         ############
         ### labels
         ############
-        ax[0].legend(fontsize='x-large')
+        ax[0].legend(fontsize='x-large',loc=0)
         ax[0].set_ylabel(r'Luminosity [erg/s]')
         ax[0].set_xlabel(r'time [s]')
 
-        ax[1].legend(fontsize='x-large')
+        ax[1].legend(fontsize='x-large',loc=0)
         ax[1].set_ylabel(r'Luminosity [erg/s]')
         ax[1].set_xlabel(r'time [s]')
         ##############################
