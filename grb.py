@@ -174,21 +174,21 @@ class GRB(object):
                  t_num=200,
                  NS_B=1e15,
                  NS_mass=1.4,
-                 NS_radius=1e6,
+                 NS_radius=12.4e5, #Shen EOS as default
                  NS_period=1e-3,
                  NS_eta_dip=0.05,
                  AG_T0=10,
                  AG_Eimp=-np.inf,
                  AG_alpha=0,
                  DISK_mass0=2.01e-2,
-                 DISK_radius=5.e7, # 500 km
-                 DISK_alpha=0.1, # disk viscosity parameter
+                 DISK_radius=5.e8, # 5000 km
+                 DISK_alpha=0.1,   # disk viscosity parameter
                  DISK_aspect_ratio=0.3, # Aspect ratio H/R
                  DISK_eta_prop=0.4,
                  EOS_Mtov=2.18, # Msun
-                 EOS_alpha=0.0766,
+                 EOS_alpha=4.678e-10,
                  EOS_beta=-2.738,
-                 EOS_I=3.33e45,
+                 EOS_I=4.37e45,
                  EJECTA_mass=0.01,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
@@ -199,7 +199,7 @@ class GRB(object):
                  EJECTA_co_Time0=1.,
                  EJECTA_co_Eint0=1e48,
                  EJECTA_co_Volume0=4./3.*np.pi*1e24,
-                 EJECTA_radius0=1e8,
+                 EJECTA_radius0=1e10, #10^5 km
                  tag='notag',
                  verbose=True):
         """
@@ -364,7 +364,7 @@ class GRB(object):
         #                  'viscous_time','Mdot0','OmegaKep']
         derived_param = ['time_collapse',
                          'time_opacity',
-                         'critical_period','OmegaKep','time_spindown']
+                         'critical_period','OmegaKep','time_spindown','viscous_time']
 
         ### for the layout column width
         lenun = max([len(getattr(self,afield+'_units'))
@@ -431,6 +431,7 @@ class GRB(object):
         ## Inconsistent prescription used in Gompertz 2014...
         #####################################################
         #self.viscous_time = self.DISK_radius**2
+        #self.DISK_cs = 1e7
         #self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius)
 
         #####################################################
@@ -1103,7 +1104,7 @@ class GRB(object):
         #################
         ## Sun model
         #################
-        nu = 5.e2 * self.Ev_to_Hz
+        nu = 1.e3 * self.Ev_to_Hz
         Doppler = self.Doppler_factor(self.Gamma)
         Temp = self.Temperature(self.Gamma,self.co_Eint,
                                 self.co_Volume,self.Radius)
