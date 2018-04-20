@@ -1102,21 +1102,21 @@ class GRB(object):
 
         ####################################
         #################
-        ## Sun model
+        ## Sun model, no actual integration in frequency
         #################
-        nu = 1.e3 * self.Ev_to_Hz
-        Doppler = self.Doppler_factor(self.Gamma)
-        Temp = self.Temperature(self.Gamma,self.co_Eint,
-                                self.co_Volume,self.Radius)
-        prefactor = 8. * (np.pi * Doppler * self.Radius)**2 
-        prefactor/= self.hPlanck**3 * self.lightspeed**2
-        num = (self.hPlanck * nu / Doppler)**4
-        den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
-        L_bb = prefactor * num / den 
+        #nu = 1.e3 * self.Ev_to_Hz
+        #Doppler = self.Doppler_factor(self.Gamma)
+        #Temp = self.Temperature(self.Gamma,self.co_Eint,
+        #                        self.co_Volume,self.Radius)
+        #prefactor = 8. * (np.pi * Doppler * self.Radius)**2 
+        #prefactor/= self.hPlanck**3 * self.lightspeed**2
+        #num = (self.hPlanck * nu / Doppler)**4
+        #den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
+        #L_bb = prefactor * num / den 
         #################
         ## or integration
         #################
-#        L_bb = self.Integrate_blackbody(keV_min=0.3,keV_max=6.)
+        L_bb = self.Integrate_blackbody(keV_min=0.3,keV_max=6.)
         ####################################
 
         self.L_bb = L_bb
