@@ -106,6 +106,11 @@ EOS['DDME2'] = {'EOS_Mtov' :2.48,
                 'EOS_beta' :-2.84,
                 'EOS_I'    :5.85e45,
                 'NS_radius':12.09e5,}
+EOS['CDDM1'] = {'EOS_Mtov' :2.21,
+                'EOS_alpha':3.93e-16,
+                'EOS_beta' :-5.0,
+                'EOS_I'    :11.67e45,
+                'NS_radius':13.99e5}
 ###########################################
 def Generate_inputs(dico):
     """
