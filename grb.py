@@ -51,6 +51,7 @@ d_units['NS_mass'] = 'g'
 d_units['NS_radius'] = 'cm'
 d_units['NS_period'] = 's'
 d_units['NS_eta_dip'] = ''
+d_units['NS_critical_beta'] = ''
 d_units['AG_T0'] = 's'
 d_units['AG_Eimp'] = 'erg'
 d_units['AG_alpha'] = ''
@@ -105,6 +106,11 @@ EOS['DDME2'] = {'EOS_Mtov' :2.48,
                 'EOS_beta' :-2.84,
                 'EOS_I'    :5.85e45,
                 'NS_radius':12.09e5,}
+EOS['CDDM1'] = {'EOS_Mtov' :2.21,
+                'EOS_alpha':3.93e-16,
+                'EOS_beta' :-5.0,
+                'EOS_I'    :11.67e45,
+                'NS_radius':13.99e5}
 ###########################################
 def Generate_inputs(dico):
     """
@@ -174,9 +180,10 @@ class GRB(object):
                  t_num=200,
                  NS_B=1e15,
                  NS_mass=1.4,
-                 NS_radius=12.4e5, #Shen EOS as default
-                 NS_period=1e-3,
+                 NS_radius=12.4e5, # Shen EOS as default
+                 NS_period=np.inf, # automatic determination
                  NS_eta_dip=0.05,
+                 NS_critical_beta=0.27, # bar-mode instability criterion
                  AG_T0=10,
                  AG_Eimp=-np.inf,
                  AG_alpha=0,
@@ -307,7 +314,7 @@ class GRB(object):
         ## Gompertz's definition
         #self.Eval_MomentOfInertia()
         ######################
-        self.Eval_Omega0()
+        self.Eval_Omega0(verbose)
         self.Eval_T_em()
         #self.Eval_L_em0()
         #self.Eval_Tc()
@@ -360,11 +367,9 @@ class GRB(object):
         control_param.remove('t_max')
         control_param.remove('t_num')
 
-        # derived_param = ['T_em','Tc','I','L_em0','mu',
-        #                  'viscous_time','Mdot0','OmegaKep']
-        derived_param = ['time_collapse',
-                         'time_opacity',
-                         'critical_period','OmegaKep','time_spindown','viscous_time']
+        derived_param = ['time_collapse','time_opacity',
+                         'critical_period','OmegaKep',
+                         'time_spindown','viscous_time']
 
         ### for the layout column width
         lenun = max([len(getattr(self,afield+'_units'))
@@ -455,12 +460,26 @@ class GRB(object):
         self.Mdot0 = self.DISK_mass0/self.viscous_time
         self.Mdot0_units = "g/s"
         
-    def Eval_Omega0(self):
+    def Eval_Omega0(self,verbose):
         """ 
-        Set the angular frequency 
+        Set the neutron star initial angular frequency.
+
+        If the neutron star period is not defined (==np.inf),
+        it uses the critical value to avoid bar-mode instability.
+
+        see beta = T/|W| parameter in
+        Gompertz et al. 2014, MNRAS 438, 240-250 ; eq. (10)
 
         """
-        self.Omega0 = 2*np.pi/self.NS_period
+        if self.NS_period==np.inf:
+            self.Omega0 = np.sqrt(2*self.NS_critical_beta*self.E_bind()/self.EOS_I)
+            P0 = 2*np.pi/self.Omega0
+            if verbose:
+                print ('Setting Omega0 automatically\nin self.Eval_Omega0()')
+                print ('Initial period = %.1e s'%P0)
+        else:
+            self.Omega0 = 2*np.pi/self.NS_period
+
         self.Omega0_units = "s^-1"
 
 
@@ -697,7 +716,7 @@ class GRB(object):
         ## with beta = T/|W| parameter (Gompertz 2014)
         ###############################################
         beta = self.E_rot(Omega)/abs(self.E_bind())
-        out[beta>0.27] = 0.
+        out[beta>self.NS_critical_beta] = 0.
 
         #########################
         ## check NS stability
@@ -1360,7 +1379,7 @@ if __name__=='__main__':
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
     GRB_061006prop['AG_T0'] = 4e0
-    GRB_061006prop['NS_period'] = 1.51e-3
+    #GRB_061006prop['NS_period'] = 1.51e-3
     GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['AG_alpha'] = 5.0
 #    GRB_061006prop['DISK_mass0']=2.01e-2
