@@ -82,27 +82,27 @@ d_units['tag']=''
 ###########################################
 EOS = {}
 EOS['GM1']   = {'EOS_Mtov' :2.37,
-                'EOS_alpha':1.58e-10, 
+                'EOS_alpha':1.58e-10,
                 'EOS_beta' :-2.84,
                 'EOS_I'    :3.33e45,
                 'NS_radius':12.05e5,}
 EOS['Shen']  = {'EOS_Mtov' :2.18,
-                'EOS_alpha':4.678e-10, 
+                'EOS_alpha':4.678e-10,
                 'EOS_beta' :-2.738,
                 'EOS_I'    :4.675e45,
                 'NS_radius':12.40e5,}
 EOS['BSk21'] = {'EOS_Mtov' :2.28,
-                'EOS_alpha':2.81e-10, 
+                'EOS_alpha':2.81e-10,
                 'EOS_beta' :-2.75,
                 'EOS_I'    :4.37e45,
                 'NS_radius':11.08e5,}
 EOS['DD2']   = {'EOS_Mtov' :2.42,
-                'EOS_alpha':1.37e-10, 
+                'EOS_alpha':1.37e-10,
                 'EOS_beta' :-2.88,
                 'EOS_I'    :5.43e45,
                 'NS_radius':11.89e5,}
 EOS['DDME2'] = {'EOS_Mtov' :2.48,
-                'EOS_alpha':1.966e-10, 
+                'EOS_alpha':1.966e-10,
                 'EOS_beta' :-2.84,
                 'EOS_I'    :5.85e45,
                 'NS_radius':12.09e5,}
@@ -139,13 +139,13 @@ def Generate_inputs(dico):
 
 ###########################################
 class GRB(object):
-    """This class defines a transient lightcurve model. 
-    It implements a modified version of Sun et al. 2017, 
+    """This class defines a transient lightcurve model.
+    It implements a modified version of Sun et al. 2017,
     with Xray emission from a free zone and a trapped zone.
-    The spindown luminosity of the NS takes into account 
-    contributions from standard dipolar spindown and the 
+    The spindown luminosity of the NS takes into account
+    contributions from standard dipolar spindown and the
     propeller model.
-    
+
     The main outputs are stored in the following class members:
     LX_free --> Free zone luminosity
     LX_trap --> Trapped zone luminosity
@@ -153,7 +153,7 @@ class GRB(object):
     L_prop  --> Propeller spindown luminosity
 
     Other time-dependent quantities are available, such as
-    characteristic radii, torques, optical depth and temperature 
+    characteristic radii, torques, optical depth and temperature
     of the ejecta, etc.
 
     Notes
@@ -218,7 +218,7 @@ class GRB(object):
 
         NS_B : float
                 magnetar magnetic field
-        
+
         NS_period : float
                 magnetar period
 
@@ -229,8 +229,8 @@ class GRB(object):
                 magnetar radius
 
         NS_eta_dip : float
-                dipole efficiency factor                 
-        
+                dipole efficiency factor
+
         DISK_mass : float
                 disk mass (in units of solar mass)
 
@@ -259,9 +259,9 @@ class GRB(object):
         tag : string
 
         verbose : boolean
-                print a summary when instantiating 
+                print a summary when instantiating
                 a GRB object
- 
+
         """
         super(GRB, self).__init__()
         ############################
@@ -376,10 +376,10 @@ class GRB(object):
                      for afield in control_param+derived_param])
         lensy = max([len(afield)
                      for afield in control_param+derived_param])
-        
+
         header = '{:-^%i}'%(lenun+lensy+2+8+1)
         ligne = '{:%i} {: 8.2e} {:%i}'%(lensy,lenun)
-        
+
         print (header.format('Model properties'))
         print (header.format('Input parameters'))
         for afield in sorted(control_param):
@@ -450,7 +450,7 @@ class GRB(object):
         ## don't forget units
         ######################
         self.viscous_time_units = "s"
-        
+
     def Eval_Mdot0(self):
         """
         Compute the initial mass accretion rate
@@ -459,9 +459,9 @@ class GRB(object):
         """
         self.Mdot0 = self.DISK_mass0/self.viscous_time
         self.Mdot0_units = "g/s"
-        
+
     def Eval_Omega0(self,verbose):
-        """ 
+        """
         Set the neutron star initial angular frequency.
 
         If the neutron star period is not defined (==np.inf),
@@ -497,7 +497,7 @@ class GRB(object):
 
         prefac = (self.AG_alpha+self.q+1)
         term2 = prefac*(self.AG_Eimp/(self.L_em0*self.AG_T0))**(1./prefac)
-        
+
         self.Tc = self.AG_T0*max(1,term2)
         self.Tc_units = 's'
 
@@ -515,7 +515,7 @@ class GRB(object):
 
         self.time_spindown = num/den
         self.time_spindown_units = 's'
-        
+
     def Eval_L_em0(self):
         """
         Set the plateau luminosity
@@ -597,7 +597,7 @@ class GRB(object):
 
     def Magnetospheric_radius(self,T,Omega):
         """
-        Magnetospheric radius 
+        Magnetospheric radius
 
         """
         Mdot = self.Accretion_rate(T)
@@ -618,7 +618,7 @@ class GRB(object):
         return out
 
     def E_rot(self,Omega):
-        """ 
+        """
         Rotational energy of the NS
 
         """
@@ -635,7 +635,7 @@ class GRB(object):
         den = self.NS_radius*self.lightspeed**2-0.5*self.gravconst*self.NS_mass
         out = 0.6*self.NS_mass*self.lightspeed**2*num/den
         return out
-        
+
     def Accretion_rate(self,T):
         """
         Accretion rate on the NS
@@ -910,12 +910,12 @@ class GRB(object):
 
 
     ##################################
-    ### Functions computing individual 
-    ### luminosity components 
+    ### Functions computing individual
+    ### luminosity components
     ##################################
     def Luminosity_dipole(self,Omega,T):
         """
-        Dipole spindown luminosity, for a general 
+        Dipole spindown luminosity, for a general
         time evolution of the NS angular velocity
         """
         Ndip = self.Torque_spindown(T,Omega)
@@ -927,7 +927,7 @@ class GRB(object):
     def Luminosity_propeller(self,Omega,T):
         """
         Propeller luminosity, taking into account
-        positive and negative torques due to the 
+        positive and negative torques due to the
         interaction with the accretion disk
         From Gompertz et al. (2014)
         """
@@ -953,7 +953,7 @@ class GRB(object):
 
         out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_co_T0)/self.EJECTA_co_TSIGMA))**1.3
         out*=prefactor
-        
+
         return out
 
     def Luminosity_electrons(self,Eint,Gamma,Volume,Radius):
@@ -982,7 +982,7 @@ class GRB(object):
 
     def Luminosity_EM(self,T):
         """
-        Analytic dipole spindown luminosity as a function of time 
+        Analytic dipole spindown luminosity as a function of time
         Eq. (7) of Zhang & Meszaros (2001)
         Deprecated, not used in the free/trapped model
         """
@@ -1019,7 +1019,7 @@ class GRB(object):
         where_ejecta_thin = tau<=1
 
         out = (Eint / self.radiation_const / Volume / tau)**(0.25)
-        
+
         out[where_ejecta_thin] *= tau[where_ejecta_thin]**(0.25)
 
         return out
@@ -1036,9 +1036,9 @@ class GRB(object):
         """
         self.L_dip = self.Luminosity_dipole(self.Omega,T)
         self.L_prop = self.Luminosity_propeller(self.Omega,T)
-        self.LX_free = (self.NS_eta_dip    * self.L_dip + 
-                        self.DISK_eta_prop * self.L_prop)  
-        
+        self.LX_free = (self.NS_eta_dip    * self.L_dip +
+                        self.DISK_eta_prop * self.L_prop)
+
         self.L_dip_units   = 'ergs/s'
         self.L_prop_units  = 'ergs/s'
         self.LX_free_units = 'ergs/s'
@@ -1127,11 +1127,11 @@ class GRB(object):
         #Doppler = self.Doppler_factor(self.Gamma)
         #Temp = self.Temperature(self.Gamma,self.co_Eint,
         #                        self.co_Volume,self.Radius)
-        #prefactor = 8. * (np.pi * Doppler * self.Radius)**2 
+        #prefactor = 8. * (np.pi * Doppler * self.Radius)**2
         #prefactor/= self.hPlanck**3 * self.lightspeed**2
         #num = (self.hPlanck * nu / Doppler)**4
         #den = np.exp(self.hPlanck * nu / (Doppler * self.kBoltzmann * Temp)) - 1.
-        #L_bb = prefactor * num / den 
+        #L_bb = prefactor * num / den
         #################
         ## or integration
         #################
@@ -1139,9 +1139,9 @@ class GRB(object):
         ####################################
 
         self.L_bb = L_bb
-        self.LX_trap = L_wind + L_bb 
+        self.LX_trap = L_wind + L_bb
         self.LX_trap_units = 'ergs/s'
-        
+
 
     #########################################
     ### Derived quantities used as diagnostic
@@ -1196,7 +1196,7 @@ class GRB(object):
     ########################################
     ### definition of the plotting functions
     ########################################
-    
+
     def PlotLuminosity(self,T,
                        savefig=False,
                        filename='lightcurve.pdf'):
@@ -1218,8 +1218,8 @@ class GRB(object):
         fig,ax = plt.subplots(2,1,figsize=(6,8))
 #        fig,ax = plt.subplots()
 
-        ax[0].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$') 
-        ax[0].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$') 
+        ax[0].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$')
+        ax[0].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$')
         ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_\text{dip}$')
         ax[0].loglog(T,self.L_prop,'g:',label=r'$L_\text{prop}$')
 
@@ -1254,7 +1254,7 @@ class GRB(object):
         Plot characteristic radii as a function of time
         """
         fig,ax = plt.subplots()
-        
+
         ### Plot of radii (magnetospheric, corotation, light-cylinder)
         ax.loglog(T,self.r_cor,label=r'$r_{corot}$')
         ax.loglog(T,self.r_lc,label=r'$r_{lc}$')
@@ -1282,7 +1282,7 @@ class GRB(object):
         #ax.loglog(T,self.beta)
         #ax.ylabel(r'$\beta$')
         #ax.xlabel(r'time [s]')
-    
+
         ### vlines
         #plt.axvline(self.T_em,label=r'$T_{em}$',ls='--',color='gray')
         #plt.axvline(self.T0,label=r'$T_0$',ls='-',color='gray')
@@ -1297,7 +1297,7 @@ class GRB(object):
                    overwrite=True,
                    **kwargs):
         """
-        write some outputs as columns in a file 
+        write some outputs as columns in a file
 
         Parameter:
         ----------
@@ -1315,8 +1315,8 @@ class GRB(object):
         overwrite : boolean
                 forces to overwrite an existing file
 
-        **kwargs : 
-                other astropy.Table.write() 
+        **kwargs :
+                other astropy.Table.write()
                 keyword arguments
 
         """
@@ -1358,7 +1358,7 @@ class GRB(object):
         # primary_hdu = fits.PrimaryHDU(header=hdr)
         # hdul = fits.HDUList([primary_hdu, hdu])
         # hdul.writeto('%s.fits'%outfile,overwrite=overwrite)
-        
+
 if __name__=='__main__':
 
     ranges = {}
