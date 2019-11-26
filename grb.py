@@ -52,6 +52,7 @@ d_units['NS_radius'] = 'cm'
 d_units['NS_period'] = 's'
 d_units['NS_eta_dip'] = ''
 d_units['NS_critical_beta'] = ''
+d_units['NS_ellipticity'] = ''
 d_units['AG_T0'] = 's'
 d_units['AG_Eimp'] = 'erg'
 d_units['AG_alpha'] = ''
@@ -184,10 +185,11 @@ class GRB(object):
                  NS_period=np.inf, # automatic determination
                  NS_eta_dip=0.05,
                  NS_critical_beta=0.27, # bar-mode instability criterion
+                 NS_ellipticity=0.1,    #NS ellipticity for the GW spindown
                  AG_T0=10,
                  AG_Eimp=-np.inf,
                  AG_alpha=0,
-                 DISK_mass0=2.01e-2,
+                 DISK_mass0=1.e-2,
                  DISK_radius=5.e8, # 5000 km
                  DISK_alpha=0.1,   # disk viscosity parameter
                  DISK_aspect_ratio=0.3, # Aspect ratio H/R
@@ -196,7 +198,7 @@ class GRB(object):
                  EOS_alpha=4.678e-10,
                  EOS_beta=-2.738,
                  EOS_I=4.37e45,
-                 EJECTA_mass=0.01,
+                 EJECTA_mass=1.e-2,
                  EJECTA_opacity=2,
                  EJECTA_heating_efficiency=0.5,
                  EJECTA_theta=0.,
@@ -316,7 +318,7 @@ class GRB(object):
         ######################
         self.Eval_Omega0(verbose)
         self.Eval_T_em()
-        #self.Eval_L_em0()
+        self.Eval_L_em0()
         #self.Eval_Tc()
         self.Eval_magnetic_moment()
         self.Eval_OmegaKep()
@@ -340,6 +342,7 @@ class GRB(object):
         ## outputs
         self.Eval_LX_free(self.time)
         self.Eval_LX_trap()
+        self.Eval_L_pure_dipole()
 
         ######################
         ### Further outputs
@@ -522,9 +525,10 @@ class GRB(object):
         eq. (8) of Zhang & Meszaros (2001)
 
         """
-        num = self.EOS_I*self.Omega0**2
-        den = 2*self.T_em
 
+#        self.L_em0 = self.Luminosity_EM(self.time)
+        num = self.EOS_I*self.Omega0**2
+        den = 2*self.time_spindown
         self.L_em0 = num/den
         self.L_em0_units = 'ergs/s'
 
@@ -602,7 +606,7 @@ class GRB(object):
         """
         Mdot = self.Accretion_rate(T)
         r_lc = self.LC_radius(Omega)
-        out = self.mu**(4./7) * (self.gravconst*self.NS_mass)**(-1./7) * Mdot**(-2./7)
+        out  = self.mu**(4./7) * (self.gravconst*self.NS_mass)**(-1./7) * Mdot**(-2./7)
 
         mask = out > 0.999*r_lc
         out[mask] = 0.999*r_lc[mask]
@@ -654,7 +658,7 @@ class GRB(object):
 
         return out
 
-    def Torque_spindown(self,T,Omega):
+    def Torque_dipole(self,T,Omega):
         """
         Dipole spindown torque. Eq (8) of Zhang and Meszaros 2001
 
@@ -664,13 +668,16 @@ class GRB(object):
         ## in the Bucciantini prescription,
         ## but it should actually be the alfven radius of the NS wind...
         ################################################################
-        #r_lc  = self.LC_radius(Omega)
         #r_mag = self.Magnetospheric_radius(T,Omega)
+        #out = - 2./3. * self.mu**2 * Omega**3 / self.lightspeed**3 * (r_lc/r_mag)**3
 
         ###################################
         ## Eq (2) of Bucciantini et al 2006
         ###################################
-        #out = - 2./3. * self.mu**2 * Omega**3 / self.lightspeed**3 * (r_lc/r_mag)**3
+        #r_lc  = self.LC_radius(Omega)
+        #mdot=1e-4/self.Msun         #To be changed to something that makes sense...
+        #r_AL = (self.NS_B**2 * self.NS_radius**4 / mdot / Omega) **(1./3.)
+        #out = - 2./3. * self.mu**2 * Omega**3 / self.lightspeed**3 * (r_lc/r_AL)**3
 
         ############################################
         ## Standard dipole spindown, no wind or disk
@@ -686,6 +693,16 @@ class GRB(object):
             out[where_NS_is_unstable] = 0.
             warnings.warn('NS collapsed')
 
+        return out
+
+    def Torque_gravwaves(self,Omega):
+        """
+        Gravitational wave spindown torque (Zhang and Meszaros 2001)
+
+        """
+        out = - 32./5. * self.gravconst * self.EOS_I**2 * self.NS_ellipticity**2 * Omega**5 / self.lightspeed**5
+        out=np.ascontiguousarray(out)
+        out[Omega<1e4]=0
         return out
 
     def Torque_accretion(self,T,Omega):
@@ -747,10 +764,11 @@ class GRB(object):
         r_mag = self.Magnetospheric_radius(T,Omega)
         r_corot = self.Corotation_radius(Omega)
 
-        Ndip = self.Torque_spindown(T,Omega)
-        Nacc = self.Torque_accretion(T,Omega)
+        Ndip  = self.Torque_dipole(T,Omega)
+        Nacc  = self.Torque_accretion(T,Omega)
+        Ngrav = self.Torque_gravwaves(Omega)
 
-        out = (Ndip + Nacc)/self.EOS_I
+        out = (Ndip + Nacc + Ngrav)/self.EOS_I
 
         return np.ascontiguousarray(out)
 
@@ -913,12 +931,13 @@ class GRB(object):
     ### Functions computing individual 
     ### luminosity components 
     ##################################
+
     def Luminosity_dipole(self,Omega,T):
         """
         Dipole spindown luminosity, for a general 
         time evolution of the NS angular velocity
         """
-        Ndip = self.Torque_spindown(T,Omega)
+        Ndip = self.Torque_dipole(T,Omega)
         ldip = - Ndip * Omega
         #ldip*= -self.NS_eta_dip
 
@@ -986,7 +1005,7 @@ class GRB(object):
         Eq. (7) of Zhang & Meszaros (2001)
         Deprecated, not used in the free/trapped model
         """
-        out = self.NS_eta_dip*self.L_em0/(1.+T/self.T_em)**2
+        out = self.NS_eta_dip*self.L_em0/(1.+T/self.time_spindown)**2
         return out
 
     ##############################################
@@ -1030,14 +1049,22 @@ class GRB(object):
     ### accretion + propeller, radiative losses)
     ### X-Ray Lightcurves from free/trapped zones
     #############################################
+    def Eval_L_pure_dipole(self):
+        """
+        X-Ray luminosity from pure dipole spindown 
+        (analytic formula from Zhang & Meszaros 2001)
+        """
+        self.L_pure_dip = self.Luminosity_EM(self.time)
+        
+        self.L_pure_dip_units   = 'ergs/s'
+
     def Eval_LX_free(self,T):
         """
         X-Ray luminosity from dipole spindown and propeller
         """
-        self.L_dip = self.Luminosity_dipole(self.Omega,T)
-        self.L_prop = self.Luminosity_propeller(self.Omega,T)
-        self.LX_free = (self.NS_eta_dip    * self.L_dip + 
-                        self.DISK_eta_prop * self.L_prop)  
+        self.L_dip  = self.NS_eta_dip * self.Luminosity_dipole(self.Omega,T)
+        self.L_prop = self.DISK_eta_prop * self.Luminosity_propeller(self.Omega,T)
+        self.LX_free = self.L_dip + self.L_prop  
         
         self.L_dip_units   = 'ergs/s'
         self.L_prop_units  = 'ergs/s'
@@ -1167,8 +1194,9 @@ class GRB(object):
         Compute the various torques
         """
         Omega=self.Omega
-        self.N_dip = self.Torque_spindown(T,Omega)
-        self.N_acc = self.Torque_accretion(T,Omega)
+        self.N_dip  = self.Torque_dipole(T,Omega)
+        self.N_acc  = self.Torque_accretion(T,Omega)
+        self.N_grav = self.Torque_gravwaves(Omega)
 
         self.N_dip_units = 'erg'
         self.N_acc_units = 'erg'
@@ -1222,6 +1250,7 @@ class GRB(object):
         ax[0].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$') 
         ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_\text{dip}$')
         ax[0].loglog(T,self.L_prop,'g:',label=r'$L_\text{prop}$')
+        ax[0].loglog(T,self.L_pure_dip,'y-',label=r'$L_\text{dip,th}$')
 
         ax[1].loglog(T,self.L_dip+self.L_prop,'r-',linewidth=3,label=r'$L_\text{sd}$',color='m')
         ax[1].loglog(T,self.L_radio,'b--',linewidth=3,label=r'$L_\text{radioactivity}$',color='k')
@@ -1379,13 +1408,12 @@ if __name__=='__main__':
     ## modelling of GRB 061006 with both propeller and dipole by Gompertz et al (2014)
     GRB_061006prop = {}
     GRB_061006prop['AG_T0'] = 4e0
-    #GRB_061006prop['NS_period'] = 1.51e-3
-    GRB_061006prop['NS_B'] = 1.48e15
     GRB_061006prop['AG_alpha'] = 5.0
-#    GRB_061006prop['DISK_mass0']=2.01e-2
-#    GRB_061006prop['DISK_radius']=400.e5
-#    GRB_061006prop['NS_eta_dip']=0.05
-#    GRB_061006prop['DISK_eta_prop']=0.4
+    GRB_061006prop['NS_B'] = 1.e13
+    GRB_061006prop['NS_mass'] = 2.4
+#    GRB_061006prop['NS_period'] = 1.5e-3
+    GRB_061006prop['NS_eta_dip']=0.01
+    GRB_061006prop['DISK_eta_prop']=0.
 
 
     #GRBname = 'GRB061006'
@@ -1397,12 +1425,12 @@ if __name__=='__main__':
         grb.PlotRadii(grb.time)
 
     if GRBname == 'GRB061006prop':
-        grb = GRB(**GRB_061006prop,**EOS['GM1'])
+        grb = GRB(**GRB_061006prop,**EOS['DD2'])
         fig,ax=grb.PlotLuminosity(grb.time)
         ## reset axes by hand
 #        ax = plt.gca()
-        for i in np.arange(ax.size):
-            ax[i].set(xlim=[1.,1e8],ylim=[1e30,1e52])
+#        for i in np.arange(ax.size):
+#            ax[i].set(xlim=[1.,1e8],ylim=[1e30,1e52])
 
         #grb.PlotRadii(grb.time)
 

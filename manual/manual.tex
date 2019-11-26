@@ -139,11 +139,43 @@ ODE system to be integrated in time:
 \dot{R}'             &=& \frac{\beta c}{1-\beta}
 \end{eqnarray}
 
-Various functions:
+Kinematic functions:
 \begin{eqnarray}
-\beta(\Gamma) &=& (1-\Gamma^{-2})^{-1/2} \\
-\mathcal{D}       &=& [\Gamma(1-\beta\cos\theta)]^{-1}
+\beta		 	&=& (1-\Gamma^{-2})^{-1/2} \\
+\mathcal{D}      	&=& [\Gamma(1-\beta\cos\theta)]^{-1} 
 \end{eqnarray}
+
+Luminosities:
+\begin{eqnarray}
+L_\tx{e}		&=& \mathcal{D}^2\frac{E_\tx{int}'c}{R/\Gamma}\times
+                                   \left\{\begin{array}{ll} 
+                                   \tau^{-1}&\quad\tx{for\ }t<t_\tau, \\
+                                  1 &\quad\tx{for\ }t\geq t_\tau,  \end{array}\right. \\
+L_\tx{ra}		&=& 4\times10^{49}M_\tx{ej,-2}\times
+                                  \mathcal{D}^2\left[\frac{1}{2}-\frac{1}{\pi}\arctan\left(\frac{t'-t}{t'_\sigma}\right)\right] \\
+L_\tx{sd}		&=& L_\tx{dip}+L_\tx{prop} \\
+L_\tx{dip}		&=& -\eta_\tx{dip} N_\tx{dip} \Omega \\
+L_\tx{prop}	&=& -\eta_\tx{prop}[ N_\tx{acc} \Omega +\tfrac{GM_*\dot{M}}{r_m}]  
+\end{eqnarray} 
+
+Torques:
+\begin{eqnarray}
+N_\tx{dip}		&=& -\frac{B^2R_*^6\Omega^3}{6c^3} \\
+N_\tx{acc}		&=& \dot{M}\sqrt{GM_*R_*}
+				\left\{\begin{array}{ll} 
+                                   \left(1-\left(\tfrac{r_m}{r_\tx{c}}\right)^{3/2}\right)&\quad\tx{for\ }r_m>R_*, \\
+			        \left(1-\tfrac{\Omega}{\Omega_\tx{K}}\right)&\quad\tx{for\ }r_m<R_*,
+			        \end{array}\right. \\
+N_\tx{gw}		&=& -\frac{32GI^2\epsilon^2\Omega^5}{5c^5} 
+\end{eqnarray}
+
+Other functions:
+\begin{eqnarray}
+\dot{M}		&=& \frac{M_\tx{disk}}{\tau_\alpha}e^{-t/\tau_\alpha} \\
+\tau_\alpha	&=& \frac{R_\tx{disk}**2}{3\alpha c_s H} \\
+\tau			&=& \kappa\frac{M_\tx{ej}}{V'}\frac{R}{\Gamma} \\
+c_s 			&=& H\Omega_\tx{K}\left(\tfrac{R_*}{R_\tx{disk}}\right)^{3/2}
+\end{eqnarray} 
 
 \bibliographystyle{bib/aa}
 \bibliography{bib/grb}
