@@ -182,3 +182,22 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+#####################################################
+mathjax_config = {
+    'TeX': {
+        'Macros': {
+            'tx' : [r'\textrm{#1}',1],
+            'Ndip': [r'{N_\mathrm{dip}}'],
+            'Nacc': [r'{N_\mathrm{acc}}'],
+            'Doppler': [r'\mathcal{D}'],
+            'alfvenradius':[r'r_\tx{m}'],
+            'corotationradius':[r'r_\tx{c}'],
+            'Ldip':[r'L_\tx{dip}'],
+            'Lrad':[r'L_\tx{ra}'],
+            'Lelec':[r'L_e'],
+            'Lbb':[r'L_\tx{bb}'],
+            'Eint':[r'E_\tx{int}'],
+            }
+        }
+    }

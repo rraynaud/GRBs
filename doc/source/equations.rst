@@ -3,7 +3,7 @@ Equations
 
 We consider a magnetar of radius $R$, mass $M$, moment of inertia $I$
 and surface magnetic field $B$, surrounded by an accretion disc with
-initial mass~$M_\tx{disc}$ and radius~$R_\tx{disc}$. The time
+initial mass :math:`M_\tx{disc}` and radius~$R_\tx{disc}$. The time
 evolution of the magnetar angular frequency $\Omega$ will be
 determined both by the magnetic and accretion torques \Ndip{} and
 \Nacc{}, defined respectively by
@@ -16,7 +16,7 @@ determined both by the magnetic and accretion torques \Ndip{} and
    \end{align}
 
 
-where $\mu = B R^3$ is the dipole moment and \alfvenradius{} the
+where $\mu = B R^3$ is the dipole moment and :math:`\alfvenradius` the
 Alfvén radius
 
 .. math::
@@ -173,8 +173,8 @@ Torques:
    N_\tx{dip}		&=& -\frac{B^2R_*^6\Omega^3}{6c^3} \\
    N_\tx{acc}		&=& \dot{M}\sqrt{GM_*R_*}
    \left\{\begin{array}{ll}
-   \left(1-\left(\tfrac{r_m}{r_\tx{c}}\right)^{3/2}\right)&\quad\tx{for\ }r_m>R_*, \\
-   \left(1-\tfrac{\Omega}{\Omega_\tx{K}}\right)&\quad\tx{for\ }r_m<R_*,
+   \left(1-\left(\tfrac{r_m}{r_\tx{c}}\right)^{3/2}\right)&\quad\tx{for } r_m>R_*, \\
+   \left(1-\tfrac{\Omega}{\Omega_\tx{K}}\right)&\quad\tx{for } r_m<R_*,
    \end{array}\right. \\
    N_\tx{gw}		&=& -\frac{32GI^2\epsilon^2\Omega^5}{5c^5}
    \end{eqnarray}
