@@ -1006,6 +1006,9 @@ class GRB(object):
         """
         Loss function
         Limp * T**(-alpha)
+
+        Notes
+        -----
         Deprecated, not used in the free/trapped model
         """
         out = self.AG_Eimp * (T/self.AG_T0)**(-self.AG_alpha)
@@ -1025,12 +1028,17 @@ class GRB(object):
     ##############################################
     def Beta(self,Gamma):
         """
-        Gamma : Lorentz factor
+        Returns:
+            float:  Lorentz factor
 
         """
         return (1-Gamma**(-2))**0.5
 
     def Doppler_factor(self,Gamma):
+        """
+        Returns:
+            float:  Doppler factor
+        """
         out = Gamma*(1. - self.Beta(Gamma)*np.cos(self.EJECTA_theta))
         return 1./out
 
