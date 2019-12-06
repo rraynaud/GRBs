@@ -3,15 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to grbs's documentation!
+Welcome to GRBs documentation!
 ================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+
    resume
    equations
+   grb
+
+.. toctree::
+   Home <self>
 
 Indices and tables
 ==================

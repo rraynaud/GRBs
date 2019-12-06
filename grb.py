@@ -4,7 +4,7 @@
 Transient Lightcurve Modelling
 
 References:
------------
+
     - Zhang and Meszaros, 2001, ApJ, 552
     - Gompertz et al., 2014, MNRAS, 438
     - Sun et al., 2017, ApJ, 835:7
@@ -115,11 +115,15 @@ EOS['CDDM1'] = {'EOS_Mtov' :2.21,
 ###########################################
 def Generate_inputs(dico):
     """
-    Input: dictionary of the form
-        {key: array of values to explore}
+    Parameters
+    ----------
 
-    Return:
-        a list of dictionaries
+    dico : dictionary
+        form {key: array of values to explore}
+
+    Returns
+    -------
+    list of dictionaries
 
     """
     keys = dico.keys()
@@ -140,39 +144,40 @@ def Generate_inputs(dico):
 
 ###########################################
 class GRB(object):
-    """This class defines a transient lightcurve model.
-    It implements a modified version of Sun et al. 2017,
-    with Xray emission from a free zone and a trapped zone.
-    The spindown luminosity of the NS takes into account
-    contributions from standard dipolar spindown and the
-    propeller model.
+    """This class defines a transient lightcurve model.  It implements a
+    modified version of Sun et al. 2017, with Xray emission from a
+    free zone and a trapped zone.  The spindown luminosity of the NS
+    takes into account contributions from standard dipolar spindown
+    and the propeller model.
 
-    The main outputs are stored in the following class members:
-    LX_free --> Free zone luminosity
-    LX_trap --> Trapped zone luminosity
-    L_dip   --> Dipolar spindown luminosity
-    L_prop  --> Propeller spindown luminosity
+    Main ouputs are stored in the following class members:
+
+    - LX_free --> Free zone luminosity
+    - LX_trap --> Trapped zone luminosity
+    - L_dip   --> Dipolar spindown luminosity
+    - L_prop  --> Propeller spindown luminosity
 
     Other time-dependent quantities are available, such as
     characteristic radii, torques, optical depth and temperature
     of the ejecta, etc.
 
+    Time dependent variables
+
+    - Omega (neutron star angular velocity)
+    - Gamma (Lorentz factor)
+    - Radius (radius of the ejecta)
+    - co_Time : co-moving time
+    - co_Eint (ejecta internal energy)
+    - c_Volume (volume of the ejecta)
+
     Notes
     -----
-    The code works in CGS_Gaussian units
-    Methods of the form Eval_* set attributes
-    Methods of the form L_* return a timeserie (1D array)
+    - The code works in CGS_Gaussian units
+    - Methods of the form Eval_* set attributes
+    - Methods of the form L_* return a timeserie (1D array)
+    - Ejecta parameters for the trapped zone:
+      *_co_* = quantity defined in the co-moving frame
 
-    Ejecta parameters for the trapped zone:
-        *_co_* = quantity defined in the co-moving frame
-
-    Time dependent variables:
-        - Omega (neutron star angular velocity)
-        - Gamma (Lorentz factor)
-        - Radius (radius of the ejecta)
-        - co_Time : co-moving time
-        - co_Eint (ejecta internal energy)
-        - c_Volume (volume of the ejecta)
 
     """
     def __init__(self,
@@ -212,11 +217,17 @@ class GRB(object):
                  tag='notag',
                  verbose=True):
         """
-        Parameters (in cgs units, when not specified otherwise)
+        Parameters
         ----------
 
-        t_min, t_max, t_num : float, float, int
-                define the integration time
+        t_min : float
+                start integration time
+
+        t_max : float
+                end integration time
+
+        t_num : int
+                number of time steps
 
         NS_B : float
                 magnetar magnetic field
@@ -470,7 +481,8 @@ class GRB(object):
         If the neutron star period is not defined (==np.inf),
         it uses the critical value to avoid bar-mode instability.
 
-        see beta = T/|W| parameter in
+        see :math:`\\beta = T/|W|` parameter in
+
         Gompertz et al. 2014, MNRAS 438, 240-250 ; eq. (10)
 
         """
@@ -1051,18 +1063,18 @@ class GRB(object):
     #############################################
     def Eval_L_pure_dipole(self):
         """
-        X-Ray luminosity from pure dipole spindown 
+        X-Ray luminosity from pure dipole spindown
         (analytic formula from Zhang & Meszaros 2001)
         """
         self.L_pure_dip = self.Luminosity_EM(self.time)
-        
+
         self.L_pure_dip_units   = 'ergs/s'
 
     def Eval_LX_free(self,T):
         """
         X-Ray luminosity from dipole spindown and propeller
         """
-        
+
         self.L_dip = self.Luminosity_dipole(self.Omega,T)
         self.L_prop = self.Luminosity_propeller(self.Omega,T)
         self.LX_free = (self.NS_eta_dip    * self.L_dip +
@@ -1079,14 +1091,14 @@ class GRB(object):
 
         Eq. (22) (Sun et al. 2017)
 
-        Parameter:
+        Parameters
         ----------
 
         nu : 1D array (dtype=float)
-                frequency range in Hz
+             frequency range in Hz
 
-        Returns:
-        --------
+        Returns
+        -------
 
         out : 2D array of size (nu,time)
 
@@ -1233,7 +1245,7 @@ class GRB(object):
         """
         Plot lightcurves as a function of time
 
-        Parameters:
+        Parameters
         ----------
 
         T : array
@@ -1330,7 +1342,7 @@ class GRB(object):
         """
         write some outputs as columns in a file
 
-        Parameter:
+        Parameters
         ----------
 
         filename : string or None

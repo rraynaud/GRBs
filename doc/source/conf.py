@@ -17,15 +17,16 @@ import sys
 #sys.path.insert(0, os.path.abspath('.'))
 #os.path.abspath('mydir/myfile.txt')
 sys.path.insert(0,"/Users/rraynaud/GRBs/doc/source")
+sys.path.insert(0,"/Users/rraynaud/GRBs/")
 
 # -- Project information -----------------------------------------------------
 
-project = 'grbs'
-copyright = '2019, us'
-author = 'us'
+project = 'GRBs'
+copyright = '2019, J. Guilet, R. Raynaud, M. Bugli'
+author = 'J. Guilet, R. Raynaud, M. Bugli'
 
 # The short X.Y version
-version = ''
+version = '0.1'
 # The full version, including alpha/beta/rc tags
 release = '0'
 
@@ -43,10 +44,13 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+autoclass_content = "both"
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
