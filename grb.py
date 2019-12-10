@@ -5,10 +5,10 @@ Transient Lightcurve Modelling
 
 References:
 
-    - Zhang and Meszaros, 2001, ApJ, 552
-    - Gompertz et al., 2014, MNRAS, 438
-    - Sun et al., 2017, ApJ, 835:7
-    - Ai et al., arXiv:1802.00571v1
+- `Zhang and Meszaros, 2001, ApJ, 552 <https://ui.adsabs.harvard.edu/abs/2001ApJ...552L..35Z/abstract>`_
+- `Gompertz et al., 2014, MNRAS, 438 <https://ui.adsabs.harvard.edu/abs/2014MNRAS.438..240G/abstract>`_
+- `Sun et al., 2017, ApJ, 835:7 <https://ui.adsabs.harvard.edu/abs/2017xru..conf..216S/abstract>`_
+- `Ai et al., 2018, ApJ, 860:57 <https://ui.adsabs.harvard.edu/abs/2018ApJ...860...57A/abstract>`_
 
 """
 __author__="GRBs: Guilet, Raynaud, Bugli"
