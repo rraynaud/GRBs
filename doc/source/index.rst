@@ -13,7 +13,8 @@ Welcome to GRBs documentation!
 
    resume
    equations
-   grb
+   api_grb
+
 
 .. toctree::
    Home <self>
