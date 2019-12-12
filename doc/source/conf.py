@@ -15,7 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0,"..")
+sys.path.insert(0,"../")
 
 # -- Project information -----------------------------------------------------
 
@@ -38,16 +38,15 @@ release = '0'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
-    #'sphinx.ext.graphviz',
-    #'sphinx_automodapi.automodapi',
-    #'sphinx_automodapi.smart_resolver',
-    #'sphinx.ext.inheritance_diagram',
-    'sphinx.ext.napoleon'
-]
+extensions = []
+extensions+= ['sphinx.ext.autodoc']
+extensions+= ['sphinx.ext.napoleon']
+extensions+= ['sphinx.ext.mathjax']
+extensions+= ['sphinx.ext.viewcode']
+# extensions+= ['sphinx.ext.graphviz']
+# extensions+= ['sphinx_automodapi.automodapi']
+# extensions+= ['sphinx_automodapi.smart_resolver']
+# extensions+= ['sphinx.ext.inheritance_diagram']
 
 numpydoc_show_class_members = True
 
