@@ -1,12 +1,15 @@
-Equations
+Modelling
 *********
 
-We consider a magnetar of radius $R$, mass $M$, moment of inertia $I$
-and surface magnetic field $B$, surrounded by an accretion disc with
-initial mass :math:`M_\tx{disc}` and radius~$R_\tx{disc}$. The time
-evolution of the magnetar angular frequency $\Omega$ will be
-determined both by the magnetic and accretion torques \Ndip{} and
-\Nacc{}, defined respectively by
+Governing equations
++++++++++++++++++++
+
+We consider a magnetar of radius :math:`R`, mass :math:`M`, moment of inertia :math:`I`
+and surface magnetic field :math:`B`, surrounded by an accretion disc with
+initial mass :math:`M_\tx{disc}` and radius :math:`R_\tx{disc}`. The time
+evolution of the magnetar angular frequency :math:`\Omega` will be
+determined both by the magnetic and accretion torques :math:`\Ndip` and
+:math:`\Nacc`, defined respectively by
 
 .. math::
    \begin{align}
@@ -16,7 +19,7 @@ determined both by the magnetic and accretion torques \Ndip{} and
    \end{align}
 
 
-where $\mu = B R^3$ is the dipole moment and :math:`\alfvenradius` the
+where :math:`\mu = B R^3` is the dipole moment and :math:`\alfvenradius` the
 Alfvén radius
 
 .. math::
@@ -26,12 +29,12 @@ Alfvén radius
    \end{equation}
 
 Depending of the values of the Alfvén radius and the corotation
-radius~$\corotationradius = \left(GM/\Omega^2\right)^{1/3}$, the
-system will be accreting or expelling material: if $\alfvenradius <
-\corotationradius$, the system is accreting and the accretion torque
-spins up the magnetar, whereas for $\alfvenradius > \corotationradius$
+radius :math:`\corotationradius = \left(GM/\Omega^2\right)^{1/3}`, the
+system will be accreting or expelling material: if :math:`\alfvenradius <
+\corotationradius`, the system is accreting and the accretion torque
+spins up the magnetar, whereas for :math:`\alfvenradius > \corotationradius`
 the magnetar loses angular momentum with the expelled material --- the
-so-called propeller regime \citep{gompertz2014}. The change of sign of
+so-called propeller regime (Gompertz et al. 2014). The change of sign of
 the accretion torque is handle by the following prefactor
 
 .. math::
@@ -46,7 +49,7 @@ the accretion torque is handle by the following prefactor
    \,,
    \end{equation}
 
-where $\Omega_\tx{K}=\sqrt{GM/R^3}$.
+where :math:`\Omega_\tx{K}=\sqrt{GM/R^3}`.
 
 TO DO
 
@@ -55,7 +58,7 @@ TO DO
 * ejecta
 
 The complete ODE system to be integrated in time is then
-\citep{sun2017}
+(Sun et al. 2017)
 
 .. math::
    \begin{align}
@@ -72,21 +75,21 @@ The complete ODE system to be integrated in time is then
    \,.
    \end{align}
 
-In the above system, \Doppler{} is the Doppler factor defined by
-$\Doppler = [\Gamma(1-\beta\cos\theta)]^{-1}$ with $ \beta(\Gamma) =
-(1-\Gamma^{-2})^{-1/2}$ and $\xi$ an efficiency parameter defining the
+In the above system, :math:`\Doppler` is the Doppler factor defined by
+:math:`\Doppler = [\Gamma(1-\beta\cos\theta)]^{-1}` with :math:`\beta(\Gamma) =
+(1-\Gamma^{-2})^{-1/2}` and :math:`\xi` an efficiency parameter defining the
 fraction of the spin-down energy that is used to heat the ejecta. The
 different luminosities that enter the equations are the dipole
-spin-down luminosity~\Ldip{}, the co-moving radiative heating
-luminosity~\Lrad{} and the co-moving bolometric emission luminosity of
-the heated electrons~\Lelec{}, respectively
+spin-down luminosity :math:`\Ldip`, the co-moving radiative heating
+luminosity :math:`\Lrad` and the co-moving bolometric emission luminosity of
+the heated electrons :math:`\Lelec`, respectively
 
 .. math::
    \begin{align}
    \Ldip &= \frac{B^2 R^6 \Omega(t)^4}{6c^3} \,,\\
    \Lrad &=  4 \times 10^{49} M_\tx{ej,-2}
    \left[\frac{1}{2}-\frac{1}{\pi} \arctan
-   \left(\frac{t'-\SI{1.3}{s}}{\SI{0.11}{s}}\right)
+   \left(\frac{t'-{1.3}\,\mathrm{s}}{{0.11}\,\mathrm{ s}}\right)
    \right]^{1.3} \Doppler^2 \,,\\
    \Lelec' &=
    \begin{cases}
@@ -123,11 +126,13 @@ Blackbody spectrum
    \,.
    \end{align}
 
-where $a$ and $k$ are respectively the blackbody radiation constant
-and the Boltzmann constant\footnote{In CGS units, we have
-$a=\SI{7.5646e-15}{erg.cm^{-3}.K^{-4}}$ and
-$k=\SI{1.380658e-16}{erg/K}$.}.
+where :math:`a` and :math:`k` are respectively the blackbody radiation constant
+and the Boltzmann constant (in CGS units, we have
+:math:`a=7.5646\times 10^{-15}\,\mathrm{erg\, cm^{-3}\,K^{-4}}` and
+:math:`k=1.380658\times10^{-16}\,\mathrm{erg/K}`).
 
+Code outputs
+++++++++++++
 
 The main output of the code are the X-ray luminosities for both the
 free and trapped zones
@@ -135,21 +140,21 @@ free and trapped zones
 .. math::
    \begin{align}
    L_\tx{X,free}(t) &= \eta \Ldip(t) \,,\\
-   L_\tx{X,trapped}(t) &= e^{-\tau} \eta \Ldip(t) + \int_{\SI{0.3}{keV}}^{\SI{6}{keV}} \nu \Lbb d \nu
+   L_\tx{X,trapped}(t) &= e^{-\tau} \eta \Ldip(t) + \int_{{0.3}\,\mathrm{keV}}^{{6}\,\mathrm{keV}} \nu \Lbb d \nu
    \,.
    \end{align}
 
 
-where one needs to introduce the factor $\eta$ to parametrize the
+where one needs to introduce the factor :math:`\eta` to parametrize the
 efficiency at which the dipole spin-down luminosity is converted to
 X-ray luminosity.
 
-\begin{itemize}
-\item magnetar collapse
-\end{itemize}
+
+magnetar collapse
+
 
 The code has been benchmark against the results of
-\citet{gompertz2014}.
+Gompertz et al. (2014).
 
 Luminosities:
 
@@ -157,8 +162,8 @@ Luminosities:
    \begin{eqnarray}
    L_\tx{e}		&=& \mathcal{D}^2\frac{E_\tx{int}'c}{R/\Gamma}\times
    \left\{\begin{array}{ll}
-   \tau^{-1}&\quad\tx{for\ }t<t_\tau, \\
-   1 &\quad\tx{for\ }t\geq t_\tau,  \end{array}\right. \\
+   \tau^{-1}&\quad\tx{for }t<t_\tau, \\
+   1 &\quad\tx{for }t\geq t_\tau,  \end{array}\right. \\
    L_\tx{ra}		&=& 4\times10^{49}M_\tx{ej,-2}\times
    \mathcal{D}^2\left[\frac{1}{2}-\frac{1}{\pi}\arctan\left(\frac{t'-t}{t'_\sigma}\right)\right] \\
    L_\tx{sd}		&=& L_\tx{dip}+L_\tx{prop} \\

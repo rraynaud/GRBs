@@ -14,10 +14,8 @@
 #
 import os
 import sys
-#sys.path.insert(0, os.path.abspath('.'))
-#os.path.abspath('mydir/myfile.txt')
-sys.path.insert(0,"/Users/rraynaud/GRBs/doc/source")
-sys.path.insert(0,"/Users/rraynaud/GRBs/")
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0,"..")
 
 # -- Project information -----------------------------------------------------
 
@@ -44,8 +42,14 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    #'sphinx.ext.graphviz',
+    #'sphinx_automodapi.automodapi',
+    #'sphinx_automodapi.smart_resolver',
+    #'sphinx.ext.inheritance_diagram',
     'sphinx.ext.napoleon'
 ]
+
+numpydoc_show_class_members = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
