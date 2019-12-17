@@ -2,7 +2,7 @@ Modelling
 *********
 
 Governing equations
-+++++++++++++++++++
+===================
 
 We consider a magnetar of radius :math:`R`, mass :math:`M`, moment of inertia :math:`I`
 and surface magnetic field :math:`B`, surrounded by an accretion disc with
@@ -17,7 +17,7 @@ determined both by the magnetic and accretion torques :math:`\Ndip` and
    \Nacc &= n(\Omega) \left(G M \alfvenradius \right)^{1/2} \dot{M}
    \,,
    \end{align}
-
+   :label: e:torques
 
 where :math:`\mu = B R^3` is the dipole moment and :math:`\alfvenradius` the
 Alfvén radius
@@ -132,7 +132,7 @@ and the Boltzmann constant (in CGS units, we have
 :math:`k=1.380658\times10^{-16}\,\mathrm{erg/K}`).
 
 Code outputs
-++++++++++++
+============
 
 The main output of the code are the X-ray luminosities for both the
 free and trapped zones

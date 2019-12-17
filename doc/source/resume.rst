@@ -37,23 +37,25 @@ résiduels qui vont d'abord absorber ce rayonnement dans certaines
 directions et le ré-émettre avec un spectre de corps noir. Le calcul
 des courbes de lumière dans la zone où le rayonnement est initialement
 piégé requiert donc de déterminer l'évolution dynamique des ejecta. On
-utilise dans ce cas le modèle de \citet{yu2013}, qui prend en compte
-l'injection d'énergie par le magnétar central et le chauffage
-additionel par désintégration d'éléments radioactifs.
+utilise dans ce cas le modèle de `Yu et al. (2013)
+<https://ui.adsabs.harvard.edu/abs/2013ApJ...776L..40Y/abstract>`_,
+qui prend en compte l'injection d'énergie par le magnétar central et
+le chauffage additionel par désintégration d'éléments radioactifs.
 
 Enfin, précisons que cette approche phénoménologique permet de
 comparer simplement différentes équations d'état qui déterminent le
 rayon :math:`R`, le moment d'inertie :math:`I` et la période critique de rotation
 du magnétar en deçà de laquelle l'objet s'effondre en trou noir. Cette
 période :math:`P` est reliée à la masse maximale d'une étoile à neutrons par
-la relation (Lasky 2014)
+la relation (`Lasky et al. 2014 <https://ui.adsabs.harvard.edu/abs/2014PhRvD..89d7302L/abstract>`_)
 
 .. math::
   M_\tx{max} = M_\tx{TOV} (1+ \alpha P^\beta)
   \,,
 
 où la masse maximale d'une étoile statique :math:`M_\text{TOV}` et les
-exposants :math:`\alpha` et :math:`\beta` sont donnés par les modèles d'équation
-d'état (Ai et al. 2018). Lorsque l'étoile s'effondre en trou noir du
-fait du ralentissement de sa rotation, on suppose que la luminosité
-due au vent du magnétar s'arrête abruptement.
+exposants :math:`\alpha` et :math:`\beta` sont donnés par les modèles
+d'équation d'état (`Ai et al. 2018 <https://ui.adsabs.harvard.edu/abs/2018ApJ...860...57A/abstract>`_).
+Lorsque l'étoile s'effondre en trou noir du fait du ralentissement de
+sa rotation, on suppose que la luminosité due au vent du magnétar
+s'arrête abruptement.

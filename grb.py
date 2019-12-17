@@ -447,6 +447,9 @@ class GRB(object):
         """
         Compute the viscous timescale of the disk
 
+        .. math::
+           \\tau_\\alpha  = \\frac{R_\\mathrm{disk}^2}{3 \\alpha c_s H}
+
         """
         #####################################################
         ## Inconsistent prescription used in Gompertz 2014...

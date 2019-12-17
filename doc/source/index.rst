@@ -10,7 +10,7 @@ Welcome to GRBs documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   install
    resume
    equations
    api_grb
