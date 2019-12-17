@@ -17,6 +17,8 @@ import sys
 #sys.path.insert(0, os.path.abspath('.'))
 #sys.path.insert(0,"..")
 sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath('.')), '..'))
+print (sys.path)
 
 # -- Project information -----------------------------------------------------
 
