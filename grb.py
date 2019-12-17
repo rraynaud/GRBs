@@ -115,6 +115,8 @@ EOS['CDDM1'] = {'EOS_Mtov' :2.21,
 ###########################################
 def Generate_inputs(dico):
     """
+    This fonctions is used to generate a grid of models
+
     Parameters
     ----------
 
