@@ -189,7 +189,7 @@ Other functions:
 .. math::
    \begin{eqnarray}
    \dot{M}		&=& \frac{M_\tx{disk}}{\tau_\alpha}e^{-t/\tau_\alpha} \\
-   \tau_\alpha	&=& \frac{R_\tx{disk}**2}{3\alpha c_s H} \\
+   \tau_\alpha	&=& \frac{R_\tx{disk}^2}{3\alpha c_s H} \\
    \tau			&=& \kappa\frac{M_\tx{ej}}{V'}\frac{R}{\Gamma} \\
    c_s 			&=& H\Omega_\tx{K}\left(\tfrac{R_*}{R_\tx{disk}}\right)^{3/2}
    \end{eqnarray}
