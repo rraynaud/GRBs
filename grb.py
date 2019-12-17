@@ -277,6 +277,30 @@ class GRB(object):
                 print a summary when instantiating
                 a GRB object
 
+        Example
+        -------
+        >>> # modelling of GRB 061006 with both
+        >>> # propeller and dipole
+        >>> # see Gompertz et al (2014)
+
+        >>> import grb
+
+        >>> GRB_061006 = {}
+        >>> GRB_061006['AG_T0'] = 4e0
+        >>> GRB_061006['AG_alpha'] = 5.0
+        >>> GRB_061006['NS_B'] = 1.e13
+        >>> GRB_061006['NS_mass'] = 2.4
+        >>> GRB_061006['NS_eta_dip']=0.01
+        >>> GRB_061006['DISK_eta_prop']=0.
+
+        >>> mod = grb.GRB(**GRB_061006,**grb.EOS['DD2'])
+
+        >>> mod.PlotLuminosity(mod.time)
+        >>> mod.PlotRadii(mod.time)
+
+        >>> # display the available EOS
+        >>> grb.EOS.keys()
+
         """
         super(GRB, self).__init__()
         ############################
