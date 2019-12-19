@@ -193,3 +193,9 @@ Other functions:
    \tau			&=& \kappa\frac{M_\tx{ej}}{V'}\frac{R}{\Gamma} \\
    c_s 			&=& H\Omega_\tx{K}\left(\tfrac{R_*}{R_\tx{disk}}\right)^{3/2}
    \end{eqnarray}
+
+
+Postprocessing
+==============
+
+You can use the methods :py:meth:`grb.GRB.PlotLuminosity` and :py:meth:`grb.GRB.PlotRadii` to visualise the results and :py:meth:`grb.GRB.WriteTable` to store them in your preferred format.

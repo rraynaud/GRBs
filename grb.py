@@ -1390,7 +1390,7 @@ class GRB(object):
                 attributes to write in different columns
 
         format : string
-                astropy supported data format
+                 astropy supported `data format <http://docs.astropy.org/en/stable/table/io.html>`_
 
         overwrite : boolean
                 forces to overwrite an existing file

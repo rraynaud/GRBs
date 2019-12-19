@@ -1,5 +1,10 @@
+***********
+Quick start
+***********
+
+================
 Getting the code
-****************
+================
 
 You can download the code from the `Git <https://git-scm.com/>`_ repository using
 
@@ -13,3 +18,12 @@ In case you already have an account on `github.com <https://github.com/>`_ and u
 .. code-block:: bash
 
    $ git clone git@github.com:rraynaud/GRBs.git
+
+============
+Requirements
+============
+
+#. python 3
+#. numpy
+#. scipy
+#. `astropy <http://docs.astropy.org/en/stable/index.html>`_
