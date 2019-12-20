@@ -27,3 +27,6 @@ Requirements
 #. numpy
 #. scipy
 #. `astropy <http://docs.astropy.org/en/stable/index.html>`_
+
+
+.. include:: resume.rst

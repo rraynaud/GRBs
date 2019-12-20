@@ -11,7 +11,6 @@ Welcome to GRBs documentation!
    :caption: Contents:
 
    install
-   resume
    equations
    api_grb
 

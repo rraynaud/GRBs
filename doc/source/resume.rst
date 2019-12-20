@@ -1,5 +1,6 @@
+======
 Résumé
-******
+======
 
 
 Pour produire des courbes de lumière associées à la coalescence de

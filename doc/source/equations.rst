@@ -152,9 +152,7 @@ X-ray luminosity.
 
 magnetar collapse
 
-
-The code has been benchmark against the results of
-Gompertz et al. (2014).
+.. note:: The code has been benchmark against the results of Gompertz et al. (2014).
 
 Luminosities:
 
