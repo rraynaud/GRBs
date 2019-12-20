@@ -82,7 +82,10 @@ fraction of the spin-down energy that is used to heat the ejecta. The
 different luminosities that enter the equations are the dipole
 spin-down luminosity :math:`\Ldip`, the co-moving radiative heating
 luminosity :math:`\Lrad` and the co-moving bolometric emission luminosity of
-the heated electrons :math:`\Lelec`, respectively
+the heated electrons :math:`\Lelec`, respectively.
+
+.. note:: The above system is build in :py:meth:`grb.GRB.Build_RHS`
+          thas is passed to the :py:meth:`grb.GRB.Time_integration` routine.
 
 .. math::
    \begin{align}
