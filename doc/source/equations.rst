@@ -30,13 +30,17 @@ Alfvén radius
 
 Depending of the values of the Alfvén radius and the corotation
 radius :math:`\corotationradius = \left(GM/\Omega^2\right)^{1/3}`, the
-system will be accreting or expelling material: if :math:`\alfvenradius <
-\corotationradius`, the system is accreting and the accretion torque
-spins up the magnetar, whereas for :math:`\alfvenradius > \corotationradius`
-the magnetar loses angular momentum with the expelled material --- the
-so-called propeller regime (Gompertz et al. 2014). The change of sign of
-the accretion torque is handle by the following prefactor
+system will be accreting or expelling material:
 
+- if :math:`\alfvenradius <\corotationradius`, the system is accreting and the accretion torque
+  spins up the magnetar,
+
+- if :math:`\alfvenradius > \corotationradius`, the magnetar loses
+  angular momentum with the expelled material in the so-called
+  propeller regime Gompertz et al. 2014).
+
+The change of sign of the accretion torque is handle by the following
+  prefactor
 .. math::
    \begin{equation}
    n(\Omega) =
@@ -169,7 +173,7 @@ Luminosities:
    \mathcal{D}^2\left[\frac{1}{2}-\frac{1}{\pi}\arctan\left(\frac{t'-t}{t'_\sigma}\right)\right] \\
    L_\tx{sd}		&=& L_\tx{dip}+L_\tx{prop} \\
    L_\tx{dip}		&=& -\eta_\tx{dip} N_\tx{dip} \Omega \\
-   L_\tx{prop}	&=& -\eta_\tx{prop}[ N_\tx{acc} \Omega +\tfrac{GM_*\dot{M}}{r_m}]
+   L_\tx{prop}	&=& -\eta_\tx{prop}\left[ N_\tx{acc} \Omega +\frac{GM_*\dot{M}}{r_m}\right]
    \end{eqnarray}
 
 Torques:
@@ -192,7 +196,7 @@ Other functions:
    \dot{M}		&=& \frac{M_\tx{disk}}{\tau_\alpha}e^{-t/\tau_\alpha} \\
    \tau_\alpha	&=& \frac{R_\tx{disk}^2}{3\alpha c_s H} \\
    \tau			&=& \kappa\frac{M_\tx{ej}}{V'}\frac{R}{\Gamma} \\
-   c_s 			&=& H\Omega_\tx{K}\left(\tfrac{R_*}{R_\tx{disk}}\right)^{3/2}
+   c_s 			&=& H\Omega_\tx{K}\left(\frac{R_*}{R_\tx{disk}}\right)^{3/2}
    \end{eqnarray}
 
 
