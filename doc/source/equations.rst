@@ -39,8 +39,8 @@ system will be accreting or expelling material:
   angular momentum with the expelled material in the so-called
   propeller regime Gompertz et al. 2014).
 
-The change of sign of the accretion torque is handle by the following
-  prefactor
+The change of sign of the accretion torque is handle by the following prefactor
+
 .. math::
    \begin{equation}
    n(\Omega) =
