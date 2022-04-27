@@ -30,8 +30,7 @@ except ImportError:
 ###########################
 ### plot parameters
 ###########################
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r"\usepackage{amsmath}"]
+mpl.rcParams['text.usetex'] = False
 import matplotlib.pyplot as plt
 plt.rcParams["axes.formatter.limits"] = [-2,2]
 plt.rcParams["axes.labelsize"] = 'xx-large'
@@ -1297,16 +1296,16 @@ class GRB(object):
         fig,ax = plt.subplots(2,1,figsize=(6,8))
 #        fig,ax = plt.subplots()
 
-        ax[0].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_\text{x,free}$')
-        ax[0].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_\text{x,trap}$')
-        ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_\text{dip}$')
-        ax[0].loglog(T,self.L_prop,'g:',label=r'$L_\text{prop}$')
-        ax[0].loglog(T,self.L_pure_dip,'y-',label=r'$L_\text{dip,th}$')
+        ax[0].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_{\rm x,free}$')
+        ax[0].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_{\rm x,trap}$')
+        ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_{\rm dip}$')
+        ax[0].loglog(T,self.L_prop,'g:',label=r'$L_{\rm prop}$')
+        ax[0].loglog(T,self.L_pure_dip,'y-',label=r'$L_{\rm dip,th}$')
 
-        ax[1].loglog(T,self.L_dip+self.L_prop,'r-',linewidth=3,label=r'$L_\text{sd}$',color='m')
-        ax[1].loglog(T,self.L_radio,'b--',linewidth=3,label=r'$L_\text{radioactivity}$',color='k')
-        ax[1].loglog(T,self.L_elect,'g:',linewidth=3,label=r'$L_\text{electrons}$',color='brown')
-        ax[1].loglog(T,self.L_bb,'g.-',linewidth=3,label=r'$L_\text{bb}$',color='orange')
+        ax[1].loglog(T,self.L_dip+self.L_prop,ls='-',linewidth=3,label=r'$L_{\rm sd}$',color='m')
+        ax[1].loglog(T,self.L_radio,ls='--',linewidth=3,label=r'$L_{\rm radioactivity}$',color='k')
+        ax[1].loglog(T,self.L_elect,ls=':',linewidth=3,label=r'$L_{\rm electrons}$',color='brown')
+        ax[1].loglog(T,self.L_bb,ls='-.',linewidth=3,label=r'$L_{\rm bb}$',color='orange')
         ############
         ### labels
         ############
