@@ -111,6 +111,12 @@ EOS['CDDM1'] = {'EOS_Mtov' :2.21,
                 'EOS_beta' :-5.0,
                 'EOS_I'    :11.67e45,
                 'NS_radius':13.99e5}
+#To reproduce Gompertz's (2014) plots
+EOS['Basique'] = {'EOS_Mtov' :2.5,
+                'EOS_alpha': 0, #pas de consideration d'effondrement en TN post merger
+                'EOS_beta' :-1,
+                'EOS_I'    :9.702e44, #I=0.35MR^2 avec M=1.4
+                'NS_radius':10.0e5}
 ###########################################
 def Generate_inputs(dico):
     """
