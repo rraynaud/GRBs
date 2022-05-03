@@ -590,7 +590,7 @@ class GRB(object):
         """
         num = self.NS_mass - self.EOS_Mtov
 
-        if num<0:
+        if num<=0:
             ## then NS always stable
             self.critical_period = -np.inf
             self.Omega_c = -np.inf
