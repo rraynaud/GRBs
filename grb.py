@@ -76,6 +76,7 @@ d_units['EJECTA_co_Volume0'] = 'cm^3'
 d_units['EJECTA_radius0']= 'cm'
 d_units['EJECTA_theta']= 'rad'
 d_units['tag']=''
+d_units['Gompertz']=''
 ###########################################
 ## EOS database (Ai 2018, Table 1)
 ## to be completed
@@ -222,7 +223,8 @@ class GRB(object):
                  EJECTA_co_Volume0=4./3.*np.pi*1e24,
                  EJECTA_radius0=1e10, #10^5 km
                  tag='notag',
-                 verbose=True):
+                 verbose=True,
+                 Gompertz = False): # for the reproduction of the results of Gompertz et al., 2014
         """
         Parameters
         ----------
@@ -483,16 +485,19 @@ class GRB(object):
         #####################################################
         ## Inconsistent prescription used in Gompertz 2014...
         #####################################################
-        #self.viscous_time = self.DISK_radius**2
-        #self.DISK_cs = 1e7
-        #self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius)
+        if self.Gompertz == True:
+            self.viscous_time = self.DISK_radius**2
+            self.DISK_cs = 1e7
+            self.viscous_time/= (3. * self.DISK_alpha * self.DISK_cs * self.DISK_radius)
 
         #####################################################
         ## More consistent definition of the viscous time....
         #####################################################
-        H = self.DISK_radius * self.DISK_aspect_ratio
-        cs = H*self.OmegaKep*(self.NS_radius/self.DISK_radius)**1.5
-        self.viscous_time = self.DISK_radius**2 / (3. * self.DISK_alpha * cs * H)
+        else :
+            H = self.DISK_radius * self.DISK_aspect_ratio
+            cs = H*self.OmegaKep*(self.NS_radius/self.DISK_radius)**1.5
+            #print('cs =', cs, 'cm/s (vs cs=1e7 Gompertz)')
+            self.viscous_time = self.DISK_radius**2 / (3. * self.DISK_alpha * cs * H)
 
         ######################
         ## don't forget units
@@ -714,8 +719,10 @@ class GRB(object):
         ## in the Bucciantini prescription,
         ## but it should actually be the alfven radius of the NS wind...
         ################################################################
-        #r_mag = self.Magnetospheric_radius(T,Omega)
-        #out = - 2./3. * self.mu**2 * Omega**3 / self.lightspeed**3 * (r_lc/r_mag)**3
+        if self.Gompertz == True:
+            r_mag = self.Magnetospheric_radius(T,Omega)
+            r_lc  = self.LC_radius(Omega)
+            out = - 2./3. * self.mu**2 * Omega**3 / self.lightspeed**3 * (r_lc/r_mag)**3
 
         ###################################
         ## Eq (2) of Bucciantini et al 2006
@@ -728,8 +735,9 @@ class GRB(object):
         ############################################
         ## Standard dipole spindown, no wind or disk
         ############################################
-        out = - 1./6. * self.mu**2 * Omega**3 / self.lightspeed**3
-        out=np.ascontiguousarray(out)
+        else:
+            out = - 1./6. * self.mu**2 * Omega**3 / self.lightspeed**3
+            out=np.ascontiguousarray(out)
 
         #########################
         ## check NS stability
