@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib as mpl
 import itertools
 from scipy.integrate import odeint
+from scipy import interpolate 
 #from astropy.io import fits
 from astropy.table import Table
 import warnings
@@ -66,6 +67,7 @@ d_units['EOS_beta'] = ''
 d_units['EOS_I'] = 'g cm^2'
 d_units['EJECTA_mass'] = 'g'
 d_units['EJECTA_opacity'] = 'cm^2/g'
+d_units['EJECTA_Ye'] = ''
 d_units['EJECTA_heating_efficiency']=''
 d_units['EJECTA_Gamma0'] = ''
 d_units['EJECTA_co_T0'] = 's'
@@ -113,11 +115,11 @@ EOS['CDDM1'] = {'EOS_Mtov' :2.21,
                 'EOS_I'    :11.67e45,
                 'NS_radius':13.99e5}
 #To reproduce Gompertz's (2014) plots
-EOS['Basique'] = {'EOS_Mtov' :2.5,
-                'EOS_alpha': 0, #pas de consideration d'effondrement en TN post merger
-                'EOS_beta' :-1,
-                'EOS_I'    :9.702e44, #I=0.35MR^2 avec M=1.4
-                'NS_radius':10.0e5}
+# EOS['Basique'] = {'EOS_Mtov' :2.5,
+#                 'EOS_alpha': 0, #pas de consideration d'effondrement en TN post merger
+#                 'EOS_beta' :-1,
+#                 'EOS_I'    :9.702e44, #I=0.35MR^2 avec M=1.4
+#                 'NS_radius':10.0e5}
 ###########################################
 def Generate_inputs(dico):
     """
@@ -222,6 +224,7 @@ class GRB(object):
                  EJECTA_co_Eint0=1e48,
                  EJECTA_co_Volume0=4./3.*np.pi*1e24,
                  EJECTA_radius0=1e10, #10^5 km
+                 EJECTA_Ye = 0.19, #electron fraction
                  tag='notag',
                  verbose=True,
                  Gompertz = False): # for the reproduction of the results of Gompertz et al., 2014
@@ -369,6 +372,7 @@ class GRB(object):
         self.Eval_viscous_time()
         self.Eval_Mdot0()
         self.Eval_critical_angular_velocity()
+        self.Eval_kappa_tanaka_interp(self.EJECTA_Ye)
         ######################
         ## fine tuning
         ######################
@@ -633,6 +637,18 @@ class GRB(object):
             self.time_collapse = -np.inf
 
         self.time_collapse_units = 's'
+
+
+    def Eval_kappa_tanaka_interp(self, Ye): 
+        """
+        Ye-Opacity relation Tanaka et al. 2019
+        """
+        ye = np.array([0.01,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.50])
+        kappa = np.array([30.1,30.0,29.9,22.30,5.60,5.36,3.30,0.96,0.1])
+        f = interpolate.interp1d(ye[::-1], kappa[::-1], kind='linear',fill_value='extrapolate')
+        #return interpolate.interp1d(kappa[::-1],ye[::-1], kind='linear',fill_value='extrapolate') 
+        self.EJECTA_opacity_tanaka = f(Ye)
+        self.EJECTA_opacity_tanaka_units = 'cm^2/g'
 
     ##########################################################
     ### Functions computing time-dependent derived quantities:
@@ -1044,6 +1060,7 @@ class GRB(object):
         out[where_ejecta_thin]*= tau[where_ejecta_thin]
 
         return out
+        
     def Luminosity_AG(self,T):
         """
         Loss function
@@ -1087,7 +1104,8 @@ class GRB(object):
     def Optical_depth(self,Gamma,Volume,Radius):
 
         out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
-        out*= self.EJECTA_opacity
+        #out*= self.EJECTA_opacity_tanaka
+        out*= self.EJECTA_opacity_tanaka
 
         return np.ascontiguousarray(out)
 
@@ -1480,24 +1498,24 @@ if __name__=='__main__':
     GRB_061006prop['DISK_eta_prop']=0.
 
 
-    #GRBname = 'GRB061006'
-    GRBname = 'GRB061006prop'
+#     #GRBname = 'GRB061006'
+#     GRBname = 'GRB061006prop'
 
-    if GRBname == 'GRB061006':
-        grb = GRB(**GRB_061006,**EOS['GM1'])
-        grb.PlotLuminosity(grb.time)
-        grb.PlotRadii(grb.time)
+#     if GRBname == 'GRB061006':
+#         grb = GRB(**GRB_061006,**EOS['GM1'])
+#         grb.PlotLuminosity(grb.time)
+#         grb.PlotRadii(grb.time)
 
-    if GRBname == 'GRB061006prop':
-        grb = GRB(**GRB_061006prop,**EOS['DD2'])
-        fig,ax=grb.PlotLuminosity(grb.time)
-        ## reset axes by hand
-#        ax = plt.gca()
-#        for i in np.arange(ax.size):
-#            ax[i].set(xlim=[1.,1e8],ylim=[1e30,1e52])
+#     if GRBname == 'GRB061006prop':
+#         grb = GRB(**GRB_061006prop,**EOS['DD2'])
+#         fig,ax=grb.PlotLuminosity(grb.time)
+#         ## reset axes by hand
+# #        ax = plt.gca()
+# #        for i in np.arange(ax.size):
+# #            ax[i].set(xlim=[1.,1e8],ylim=[1e30,1e52])
 
-        #grb.PlotRadii(grb.time)
+#         #grb.PlotRadii(grb.time)
 
-        #grb.WriteTable()
+#         #grb.WriteTable()
 
-    plt.show()
+#     plt.show()
