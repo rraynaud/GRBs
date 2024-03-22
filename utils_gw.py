@@ -7,9 +7,12 @@ functions to produce some injections parameters for GW waveforms
 """
 
 import sys
+import os
 import numpy as np
+from astropy.table import QTable
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+import astropy_healpix as ah
 import matplotlib.pyplot as plt
 import json
 
@@ -69,8 +72,49 @@ def uniform_cos(max=np.pi):
     theta[mask] = theta[mask] - np.pi
 
     return theta
+
+def get_prob_size(skymap, prob_lim=[0.9]):
+    """
+    taken from EM follow-up guide https://emfollow.docs.ligo.org/userguide/tutorial/multiorder_skymaps.html
+    function to compute the prob_lim sky error region
+    :param: prob_lim : limite in probability for the sky error region
+    :param: skymap : QTable with the probability - used with multiorder fits
+    :return: size error region in deg2
+    """    
+
+    skymap.sort('PROBDENSITY', reverse=True)
+    level, ipix = ah.uniq_to_level_ipix(skymap['UNIQ'])
+    pixel_area = ah.nside_to_pixel_area(ah.level_to_nside(level))
+    prob = pixel_area * skymap['PROBDENSITY']
+    cumprob = np.cumsum(prob)
+
+    areas=[]
+    for prob in prob_lim:
+        i = cumprob.searchsorted(prob)
+        area_p = pixel_area[:i].sum()
+        areas.append(area_p.to_value(u.deg**2))
+
+    return areas
+
+def loop_fitsfile(folder="./", probs=[0.9]):
+    """
+    function to loop on all skymap fits file in a given directory
+    by default the current directory
+    and scan the error region
+    """
+
+    results = []
+    # find all fits file
+    results += [each for each in os.listdir(folder) if each.endswith('.fits')]
+
+    for filen in results:
+        skymap = QTable.read(filen)
+        sizemap = get_prob_size(skymap,prob_lim=probs)
+        print(filen + " " + str(sizemap))
+
     
-    
+
+
 def plot_sky_radec(skys):
     """
     test function uniform random in RA-Dec and plot result
