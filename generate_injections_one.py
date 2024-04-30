@@ -17,6 +17,7 @@ the optional parameters, if not defined, will be randomly produced
 import sys,os
 import numpy as np
 import json
+from datetime import datetime
 from pycbc.io import FieldArray
 from pycbc.inject import InjectionSet
 
@@ -112,10 +113,30 @@ except KeyError as err:
 InjectionSet.write('injections.hdf', samples, static_args=static_params,
                    injtype='cbc', cmd=" ".join(sys.argv))
 
+gps = datetime(1980,1,6)
+time_n = str(round((datetime.now()-gps).total_seconds()))
+
+cmd_line = 'cp injections.hdf injections' + '_' + str(nwave) + '_' + time_n + '.hdf'
+os.system(cmd_line)
+
+f = open('output_' + str(nwave) + '_' + time_n + '.txt', "w")
+
 for i in range(0,len(config['tc'])):
     gps = str(round(config['tc'][i]))
     print(gps)
-    cmd_line = 'pycbc_make_skymap --trig-time ' + gps + \
+
+    m1 = str(round(samples['mass1'][i],2))
+    m2 = str(round(samples['mass2'][i],2))
+    sp1z = str(round(samples['spin1z'][i],3))
+    sp2z = str(round(samples['spin2z'][i],3))
+
+    dist = str(round(samples['distance'][i]))
+    pos = str(round(samples['ra'][i],3)) + ' ' + str(round(samples['dec'][i],3))
+
+    cmd_line = m1 + ' ' + m2 + ' ' + sp1z + ' ' + sp2z + ' ' + gps + ' ' + dist + ' ' + pos + '\n'
+    f.write(cmd_line)
+
+    cmd_line = './pycbc_make_skymap.py --trig-time ' + gps + \
                ' --fake-strain H1:aLIGOaLIGO175MpcT1800545 ' + \
                'L1:aLIGOaLIGO175MpcT1800545 ' + \
                'V1:AdVO3LowT1800545 ' + \
@@ -142,5 +163,5 @@ for i in range(0,len(config['tc'])):
     print(cmd_line)
     os.system(cmd_line)
 
-
+f.close()
 

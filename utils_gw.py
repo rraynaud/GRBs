@@ -15,6 +15,7 @@ from astropy.coordinates import SkyCoord
 import astropy_healpix as ah
 import matplotlib.pyplot as plt
 import json
+import itertools
 
 def unifom_radec(nwave):
     """
@@ -107,13 +108,36 @@ def loop_fitsfile(folder="./", probs=[0.9]):
     # find all fits file
     results += [each for each in os.listdir(folder) if each.endswith('.fits')]
 
+    output=[]
+
     for filen in results:
         skymap = QTable.read(filen)
         sizemap = get_prob_size(skymap,prob_lim=probs)
         print(filen + " " + str(sizemap))
+        tmp=[[filen[:-5]],sizemap[:]]
+        merged = list(itertools.chain.from_iterable(tmp))
+        output.append(merged)
 
-    
+    return output
 
+def loop_snrfile(folder="./"):
+    """
+    function to loop on all the snr file and retrieved SNR for all detectors
+    """
+
+    results = []
+    # find all fits file
+    results += [each for each in os.listdir(folder) if each.endswith('snr.json')]
+
+    output = []
+
+    for filen in results:
+        with open(filen) as f:
+            snr_itf = json.load(f)
+            output.append([filen[:-9],snr_itf["H1"],snr_itf["L1"],snr_itf["V1"]])
+        f.close()
+
+    return output
 
 def plot_sky_radec(skys):
     """
