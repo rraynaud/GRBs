@@ -130,10 +130,12 @@ for i in range(0,len(config['tc'])):
     sp1z = str(round(samples['spin1z'][i],3))
     sp2z = str(round(samples['spin2z'][i],3))
 
+    incli = str(round(samples['inclination'][i],3))
+
     dist = str(round(samples['distance'][i]))
     pos = str(round(samples['ra'][i],3)) + ' ' + str(round(samples['dec'][i],3))
 
-    cmd_line = m1 + ' ' + m2 + ' ' + sp1z + ' ' + sp2z + ' ' + gps + ' ' + dist + ' ' + pos + '\n'
+    cmd_line = m1 + ' ' + m2 + ' ' + sp1z + ' ' + sp2z + ' ' + gps + ' ' + incli + ' ' + dist + ' ' + pos + '\n'
     f.write(cmd_line)
 
     cmd_line = './pycbc_make_skymap.py --trig-time ' + gps + \
