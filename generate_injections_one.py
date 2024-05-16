@@ -49,10 +49,13 @@ samples = FieldArray(nwave, dtype=dtype)
 samples['mass1'] = config['mass1']
 samples['mass2'] = config['mass2']
 
+#inclination is defined between 0 and pi
+#0 means face-on, jet oriented to our direction
+#pi means face-away 
 costheta = np.random.uniform(low=-1, high=1., size=nwave)
 theta = np.arccos(costheta)
-mask = theta > np.pi/2
-theta[mask] = theta[mask] - np.pi
+#mask = theta > np.pi/2
+#theta[mask] = theta[mask] - np.pi
 samples['inclination'] = theta
 
 #check if spin keyword exists, otherwise randmly choose it
