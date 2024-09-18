@@ -147,6 +147,7 @@ for i in range(0,len(config['tc'])):
                'V1:AdVO3LowT1800545 ' + \
                '--injection-file injections.hdf --thresh-SNR 5.5 ' + \
                '--f-low 20 --mass1 ' + str(config['mass1'][i]) + \
+               ' --fake-strain-seed H1:1234 L1:2345 V1:3456 ' + \
                ' --mass2 ' + str(config['mass2'][i]) + \
                ' --spin1z ' + str(config['spin1z'][i]) + \
                ' --spin2z ' + str(config['spin2z'][i]) + ' --ifos H1 L1 V1 ' + \
