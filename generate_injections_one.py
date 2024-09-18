@@ -25,15 +25,18 @@ dtype = [('mass1', float), ('mass2', float),
          ('spin1z', float), ('spin2z', float),
          ('tc', float), ('distance', float),
          ('ra', float), ('dec', float),
+         ('coa_phase', float),
+         ('polarization', float),
          ('inclination', float),
          ('approximant', 'S32')]
 
 static_params = {'f_lower': 17.,
                  'f_ref': 17.,
-                 'taper': 'start',
-                 'inclination': 0.,
-                 'coa_phase': 0.,
-                 'polarization': 0.}
+                 'taper': 'startend'
+                }
+#                 'inclination': 0.,
+#                 'coa_phase': 0.,
+#                 'polarization': 0.}
 
 with open('./config.json') as filename:
     config = json.load(filename)
@@ -57,6 +60,9 @@ theta = np.arccos(costheta)
 #mask = theta > np.pi/2
 #theta[mask] = theta[mask] - np.pi
 samples['inclination'] = theta
+
+samples['coa_phase'] = np.random.uniform(low=0, high=2*np.pi, size=nwave) 
+samples['polarization'] = np.random.uniform(low=0, high=2*np.pi, size=nwave)
 
 #check if spin keyword exists, otherwise randmly choose it
 try:
@@ -94,7 +100,7 @@ try:
     samples['dec'] = np.deg2rad(config['dec'])
 except KeyError as err:
     print('RA-Dec positions not defined, we will randomly choose them')
-    cmd = "./utils_gw.py " + str(nwave) + " 20"
+    cmd = "./utils_gw.py " + str(nwave) 
     os.system(cmd)
     with open('./radec.json') as filenameb:
         pos = json.load(filenameb)

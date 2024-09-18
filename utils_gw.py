@@ -188,10 +188,10 @@ if __name__ == "__main__":
 #and save them into radec.json file
 #"""
 
-    if len(sys.argv) > 2:
-        skys = uniform_extragalac(int(sys.argv[1]), lat_out=float(sys.argv[2]))
-        produce_json(skys)
-    else:
-        print('missing arguments : number of positions to simulate, exclusion galactic latitude')
+#    if len(sys.argv) > 2:
+     skys = unifom_radec(int(sys.argv[1]))
+     produce_json(skys)
+#    else:
+#        print('missing arguments : number of positions to simulate, exclusion galactic latitude')
 
     
