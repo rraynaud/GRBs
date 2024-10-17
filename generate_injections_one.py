@@ -87,7 +87,7 @@ try:
 except KeyError as err:
     print('tc not defined, we will randomly choose them')
     tcini = 1272790260.0
-    config['tc'] = tcini + 86400. * np.round(np.random.uniform(low=.1, high=.9, size=nwave),5)
+    config['tc'] = tcini + 8640000. * np.round(np.random.uniform(low=.1, high=.9, size=nwave),5)
     samples['tc'] = config['tc']
 
 #np.set_printoptions(precision=15)
