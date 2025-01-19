@@ -20,6 +20,7 @@ import matplotlib as mpl
 import itertools
 from scipy.integrate import odeint
 from scipy import interpolate 
+from scipy import integrate
 #from astropy.io import fits
 from astropy.table import Table
 import warnings
@@ -28,6 +29,7 @@ try:
     mpl.rcParams.update(mpl.rcParamsDefault)
 except ImportError:
     pass
+import tidal_deformability
 ###########################
 ### plot parameters
 ###########################
@@ -61,59 +63,103 @@ d_units['DISK_radius'] = 'cm'
 d_units['DISK_alpha'] = ''
 d_units['DISK_aspect_ratio'] = ''
 d_units['DISK_eta_prop'] = ''
+d_units['DISK_fej'] = ''
+d_units['EOS_name'] = ''
 d_units['EOS_Mtov'] = 'g'
 d_units['EOS_alpha'] = ''
 d_units['EOS_beta'] = ''
 d_units['EOS_I'] = 'g cm^2'
+d_units['EOS_P0'] = 's'
 d_units['EJECTA_mass'] = 'g'
-d_units['EJECTA_opacity'] = 'cm^2/g'
-d_units['EJECTA_Ye'] = ''
+d_units['EJECTA_dyn_Ye'] = ''
+d_units['EJECTA_post_Ye'] = ''
 d_units['EJECTA_heating_efficiency']=''
-d_units['EJECTA_Gamma0'] = ''
-d_units['EJECTA_co_T0'] = 's'
+d_units['EJECTA_free_Gamma0'] = ''
+d_units['EJECTA_trap_Gamma0'] = ''
+d_units['EJECTA_free_co_T0'] = 's'
+d_units['EJECTA_trap_co_T0'] = 's'
 d_units['EJECTA_co_TSIGMA'] = 's'
-d_units['EJECTA_co_Time0'] = 's'
-d_units['EJECTA_co_Eint0'] = 'erg'
-d_units['EJECTA_co_Volume0'] = 'cm^3'
-d_units['EJECTA_radius0']= 'cm'
+d_units['EJECTA_free_co_Time0'] = 's'
+d_units['EJECTA_trap_co_Time0'] = 's'
+d_units['EJECTA_free_co_Eint0'] = 'erg'
+d_units['EJECTA_trap_co_Eint0'] = 'erg'
+d_units['EJECTA_free_co_Volume0'] = 'cm^3'
+d_units['EJECTA_trap_co_Volume0'] = 'cm^3'
+d_units['EJECTA_free_radius0']= 'cm'
+d_units['EJECTA_trap_radius0']= 'cm'
 d_units['EJECTA_theta']= 'rad'
 d_units['tag']=''
 d_units['Gompertz']=''
+d_units['M1']='g'
+d_units['M2']='g'
 ###########################################
 ## EOS database (Ai 2018, Table 1)
 ## to be completed
 ###########################################
 EOS = {}
-EOS['GM1']   = {'EOS_Mtov' :2.37,
+EOS['GM1']   = {'EOS_name' :'GM1',
+                'EOS_Mtov' :2.37,
                 'EOS_alpha':1.58e-10,
                 'EOS_beta' :-2.84,
                 'EOS_I'    :3.33e45,
-                'NS_radius':12.05e5,}
-EOS['Shen']  = {'EOS_Mtov' :2.18,
+                'NS_radius':12.05e5,
+                'EOS_P0'   :0.72e-3}
+EOS['Shen']  = {'EOS_name' :'Shen',
+                'EOS_Mtov' :2.18,
                 'EOS_alpha':4.678e-10,
                 'EOS_beta' :-2.738,
                 'EOS_I'    :4.675e45,
-                'NS_radius':12.40e5,}
-EOS['BSk21'] = {'EOS_Mtov' :2.28,
+                'NS_radius':12.40e5,
+                'EOS_P0'   :0.72e-3} #A TROUVER
+EOS['BSk21'] = {'EOS_name' :'BSk21',
+                'EOS_Mtov' :2.28,
                 'EOS_alpha':2.81e-10,
                 'EOS_beta' :-2.75,
                 'EOS_I'    :4.37e45,
-                'NS_radius':11.08e5,}
-EOS['DD2']   = {'EOS_Mtov' :2.42,
+                'NS_radius':11.08e5,
+                'EOS_P0'   :0.60e-3}
+EOS['DD2']   = {'EOS_name' :'DD2',
+                'EOS_Mtov' :2.42,
                 'EOS_alpha':1.37e-10,
                 'EOS_beta' :-2.88,
                 'EOS_I'    :5.43e45,
-                'NS_radius':11.89e5,}
-EOS['DDME2'] = {'EOS_Mtov' :2.48,
+                'NS_radius':11.89e5,
+                'EOS_P0'   :0.65e-3}
+EOS['DDME2'] = {'EOS_name' :'DDME2',
+                'EOS_Mtov' :2.48,
                 'EOS_alpha':1.966e-10,
                 'EOS_beta' :-2.84,
                 'EOS_I'    :5.85e45,
-                'NS_radius':12.09e5,}
-EOS['CDDM1'] = {'EOS_Mtov' :2.21,
+                'NS_radius':12.09e5,
+                'EOS_P0'   :0.66e-3}
+EOS['CDDM1'] = {'EOS_name' :'CDDM1',
+                'EOS_Mtov' :2.21,
                 'EOS_alpha':3.93e-16,
                 'EOS_beta' :-5.0,
                 'EOS_I'    :11.67e45,
-                'NS_radius':13.99e5}
+                'NS_radius':13.99e5,
+                'EOS_P0'   :0.83e-3}
+EOS['CIDDM'] = {'EOS_name' :'CIDDM',
+                'EOS_Mtov' :2.09,
+                'EOS_alpha':2.58e-16,
+                'EOS_beta' :-4.93,
+                'EOS_I'    :8.645e45,
+                'NS_radius':12.43e5,
+                'EOS_P0'   :1.00e-3}
+EOS['MIT2'] = {'EOS_name' :'MIT2',
+                'EOS_Mtov' :2.08,
+                'EOS_alpha':1.57e-15,
+                'EOS_beta' :-4.58,
+                'EOS_I'    :7.881e45,
+                'NS_radius':11.48e5,
+                'EOS_P0'   :0.71e-3}
+EOS['MIT3'] = {'EOS_name' :'MIT3',
+                'EOS_Mtov' :2.48,
+                'EOS_alpha':3.35e-15,
+                'EOS_beta' :-4.60,
+                'EOS_I'    :13.43e45,
+                'NS_radius':13.71e5,
+                'EOS_P0'   :0.85e-3}
 #To reproduce Gompertz's (2014) plots
 # EOS['Basique'] = {'EOS_Mtov' :2.5,
 #                 'EOS_alpha': 0, #pas de consideration d'effondrement en TN post merger
@@ -209,25 +255,37 @@ class GRB(object):
                  DISK_alpha=0.1,   # disk viscosity parameter
                  DISK_aspect_ratio=0.3, # Aspect ratio H/R
                  DISK_eta_prop=0.4,
+                 DISK_fej=0.4, # Proportion of the initial mass disk that goes in the ejecta
+                 EOS_name='DD2',
                  EOS_Mtov=2.18, # Msun
                  EOS_alpha=4.678e-10,
                  EOS_beta=-2.738,
                  EOS_I=4.37e45,
+                 EOS_P0=0.65e-3, #breakout period
                  EJECTA_mass=1.e-2,
-                 EJECTA_opacity=2,
+                 #EJECTA_opacity=2, #to remove bc interpolation more acurate
                  EJECTA_heating_efficiency=0.5,
                  EJECTA_theta=0.,
-                 EJECTA_Gamma0=1.,
-                 EJECTA_co_T0=1.3, # eq. 15 Sun (2017)
+                 EJECTA_free_Gamma0=1.2,
+                 EJECTA_trap_Gamma0=1.,
+                 EJECTA_free_co_T0=1.3, # eq. 15 Sun (2017)
+                 EJECTA_trap_co_T0=1.3, # eq. 15 Sun (2017)
                  EJECTA_co_TSIGMA=0.11,
-                 EJECTA_co_Time0=1.,
-                 EJECTA_co_Eint0=1e48,
-                 EJECTA_co_Volume0=4./3.*np.pi*1e24,
-                 EJECTA_radius0=1e10, #10^5 km
-                 EJECTA_Ye = 0.19, #electron fraction
+                 EJECTA_free_co_Time0=1.,
+                 EJECTA_trap_co_Time0=1.,
+                 EJECTA_free_co_Eint0=1e48,
+                 EJECTA_trap_co_Eint0=1e48,
+                 EJECTA_free_co_Volume0=4./3.*np.pi*1e24,
+                 EJECTA_trap_co_Volume0=4./3.*np.pi*1e24,
+                 EJECTA_free_radius0=1e10, #10^5 km
+                 EJECTA_trap_radius0=1e10, #10^5 km
+                 EJECTA_dyn_Ye = 0.19, #electron fraction for the dynamical ejecta
+                 EJECTA_post_Ye = 0.22, #and for the post-merger ejecta
                  tag='notag',
                  verbose=True,
-                 Gompertz = False): # for the reproduction of the results of Gompertz et al., 2014
+                 Gompertz = False,
+                 M1 = 1.3, # Need the masses of the progenitors for the polynomial fits (opacity and disk mass)
+                 M2 = 1.3): # for the reproduction of the results of Gompertz et al., 2014
         """
         Parameters
         ----------
@@ -372,7 +430,14 @@ class GRB(object):
         self.Eval_viscous_time()
         self.Eval_Mdot0()
         self.Eval_critical_angular_velocity()
-        self.Eval_kappa_tanaka_interp(self.EJECTA_Ye)
+        self.Eval_opacity()
+
+        self.Eval_Disk_mass()
+        self.Eval_Disk_mass0()
+        self.Eval_Ejecta_PostMerger_mass()
+        self.Eval_Ejecta_Dynamical_mass()
+        #self.Eval_kappa_tanaka_interp_trap(self.EJECTA_Ye)
+        #self.Eval_kappa_tanaka_interp_free(self.EJECTA_Free_Ye)
         ######################
         ## fine tuning
         ######################
@@ -400,7 +465,6 @@ class GRB(object):
         self.Eval_diagnostic_outputs(self.time)
         self.Eval_T_tau(self.time) # ejecta become optically thin
         self.Eval_T_col(self.time) # NS collapse
-
         ######################
         ### print a summary
         ######################
@@ -417,6 +481,7 @@ class GRB(object):
         control_param.remove('t_min')
         control_param.remove('t_max')
         control_param.remove('t_num')
+        control_param.remove('EOS_name')
 
         derived_param = ['time_collapse','time_opacity',
                          'critical_period','OmegaKep',
@@ -532,9 +597,11 @@ class GRB(object):
         if self.NS_period==np.inf:
             self.Omega0 = np.sqrt(2*self.NS_critical_beta*self.E_bind()/self.EOS_I)
             P0 = 2*np.pi/self.Omega0
+            if P0 < self.EOS_P0:
+                P0 = self.EOS_P0
             if verbose:
                 print ('Setting Omega0 automatically\nin self.Eval_Omega0()')
-                print ('Initial period = %.1e s'%P0)
+                #print ('Initial period = %.1e s'%P0)
         else:
             self.Omega0 = 2*np.pi/self.NS_period
 
@@ -615,7 +682,7 @@ class GRB(object):
         """
         Compute the time when the ejecta become optically thin
         """
-        where_ejecta_thin = self.tau<=1
+        where_ejecta_thin = self.tau_trap<=1
         i = np.argmax(where_ejecta_thin)
         if i > 0:
             self.time_opacity = T[i]
@@ -623,7 +690,6 @@ class GRB(object):
             self.time_opacity = -1
 
         self.time_opacity_units = 's'
-
 
     def Eval_T_col(self,T):
         """
@@ -638,17 +704,68 @@ class GRB(object):
 
         self.time_collapse_units = 's'
 
+    # def Eval_opacity(self, Ye):
+    #     """
+    #     Ye-Opacity relation Tanaka et al. 2019
+    #     """
+    #     Ye_values = np.array([0.10,0.20,0.25,0.35,0.40])
+    #     tau_values = np.array([30,20,5,3,1])
+    #     tau = interpolate.interp1d(Ye_values, tau_values, kind='linear')
+    #     #return interpolate.interp1d(kappa[::-1],ye[::-1], kind='linear',fill_value='extrapolate')
+    #     self.EJECTA_opacity = tau(Ye)
+    #     self.EJECTA_opacity_units = 'cm^2/g'
 
-    def Eval_kappa_tanaka_interp(self, Ye): 
-        """
-        Ye-Opacity relation Tanaka et al. 2019
-        """
-        ye = np.array([0.01,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.50])
-        kappa = np.array([30.1,30.0,29.9,22.30,5.60,5.36,3.30,0.96,0.1])
-        f = interpolate.interp1d(ye[::-1], kappa[::-1], kind='linear',fill_value='extrapolate')
-        #return interpolate.interp1d(kappa[::-1],ye[::-1], kind='linear',fill_value='extrapolate') 
-        self.EJECTA_opacity_tanaka = f(Ye)
-        self.EJECTA_opacity_tanaka_units = 'cm^2/g'
+    # def Eval_kappa_tanaka_interp_trap(self, Ye):
+    #     """
+    #     Ye-Opacity relation Tanaka et al. 2019
+    #     """
+    #     ye = np.array([0.01,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.50])
+    #     kappa = np.array([30.1,30.0,29.9,22.30,5.60,5.36,3.30,0.96,0.1])
+    #     f = interpolate.interp1d(ye, kappa, kind='linear')
+    #     #return interpolate.interp1d(kappa[::-1],ye[::-1], kind='linear',fill_value='extrapolate')
+    #     self.EJECTA_opacity_tanaka_trap = f(Ye) #self.EJECTA_Ye
+    #     print("Opacity trap: " + str(self.EJECTA_opacity_tanaka_trap))
+    #     self.EJECTA_opacity_tanaka_trap_units = 'cm^2/g'
+
+    # def Eval_kappa_tanaka_interp_free(self, Ye):
+    #     """
+    #     Ye-Opacity relation Tanaka et al. 2019
+    #     """
+    #     ye = np.array([0.01,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.50])
+    #     kappa = np.array([30.1,30.0,29.9,22.30,5.60,5.36,3.30,0.96,0.1])
+    #     f = interpolate.interp1d(ye, kappa, kind='linear')
+    #     #return interpolate.interp1d(kappa[::-1],ye[::-1], kind='linear',fill_value='extrapolate')
+    #     self.EJECTA_opacity_tanaka_free = f(Ye) #self.EJECTA_Ye
+    #     print("Opacity free: " + str(self.EJECTA_opacity_tanaka_free))
+    #     self.EJECTA_opacity_tanaka_free_units = 'cm^2/g'
+
+    def Eval_opacity(self): # Polynomial fit for the dynamical ejecta opacity
+        tau = tidal_deformability.set_opacity(self.M1, self.M2, self.EOS_name)
+        print('Opacity ' + str(tau))
+        self.EJECTA_dyn_opacity = tau
+        self.EJECTA_dyn_opacity_units = 'cm^2/g'
+
+    def Eval_Disk_mass(self):
+        Disk_mass = tidal_deformability.polynomial_fit_disk_mass(self.M1, self.M2, self.EOS_name) # ca c en masses solaires attention
+        self.DISK_mass = Disk_mass
+        print('Disk mass ' + str(Disk_mass))
+        self.DISK_mass *= self.Msun
+        self.DISK_mass_units = 'g'
+
+    def Eval_Disk_mass0(self):
+        self.DISK_mass0 = (1 - self.DISK_fej)*self.DISK_mass
+
+    def Eval_Ejecta_PostMerger_mass(self): #The post-merger ejecta mass is defined as a fraction of the disk mass, so as not to create mass
+        self.EJECTA_post_mass = self.DISK_fej*self.DISK_mass
+        print('Post-merger ejecta mass ' + str(self.EJECTA_post_mass/self.Msun))
+        #self.EJECTA_post_mass *= self.Msun #You already converted the disk mass in sun mass dumbass
+        self.EJECTA_post_mass_units = 'g'
+
+    def Eval_Ejecta_Dynamical_mass(self): #The dynamical ejecta mass is extracted directly from the polynomial fits
+        self.EJECTA_dyn_mass = tidal_deformability.polynomial_fit_dynamical_ejecta(self.M1, self.M2, self.EOS_name)
+        print('Dynamical ejecta mass ' + str(self.EJECTA_dyn_mass))
+        self.EJECTA_dyn_mass *= self.Msun
+        self.EJECTA_dyn_mass_units = 'g'
 
     ##########################################################
     ### Functions computing time-dependent derived quantities:
@@ -852,7 +969,7 @@ class GRB(object):
 
         return np.ascontiguousarray(out)
 
-    def Gamma_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius):
+    def Gamma_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius, free):
         """
         Eq. (14) Sun et al. (2017)
 
@@ -862,14 +979,18 @@ class GRB(object):
         ##########################
         Doppler = self.Doppler_factor(Gamma)
         beta = self.Beta(Gamma)
-
+        tau = self.Optical_depth(Gamma,co_Volume,Radius,free)
+        #tau_trap = self.Optical_depth(Gamma,co_Volume,Radius,free=False)
         L_dip   = self.Luminosity_dipole(Omega,T)
         L_prop  = self.Luminosity_propeller(Omega,T)
         L_radio = self.Luminosity_radioactivity(co_Time,Gamma)
         L_elect = self.Luminosity_electrons(co_Eint,Gamma,co_Volume,Radius)
 
-        L1 = L_dip + L_prop + L_radio - L_elect
-        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radio - L_elect
+        sd_acceleration_injection = 1 - np.exp(-tau) #bc sd_wind_injection = np.exp(-tau)
+        L1 = (1 - np.exp(-tau))*L_dip + L_prop + L_radio - L_elect
+
+        #L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radio - L_elect
+        L2 = self.EJECTA_heating_efficiency*((1 - np.exp(-tau))*L_dip + L_prop) + L_radio - L_elect
 
         ##########
         ### output
@@ -878,11 +999,49 @@ class GRB(object):
 
         gdot+= Gamma*Doppler * co_Eint/(3*co_Volume) * 4*np.pi*beta*self.lightspeed*Radius**2
 
-        gdot/=(self.EJECTA_mass*self.lightspeed**2 + co_Eint)
+        if free:
+            gdot/=(self.EJECTA_dyn_mass*self.lightspeed**2 + co_Eint)
+        else:
+            gdot/=((self.EJECTA_dyn_mass+self.EJECTA_dyn_mass)*self.lightspeed**2 + co_Eint)
+        #gdot/=(self.EJECTA_dyn_mass*self.lightspeed**2 + co_Eint)
 
         return np.ascontiguousarray(gdot)
 
-    def co_Eint_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius):
+    # def Gamma_dot_free(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius, free):
+    #     """
+    #     Eq. (14) Sun et al. (2017)
+
+    #     """
+    #     ##########################
+    #     ### intermediate variables
+    #     ##########################
+    #     Doppler = self.Doppler_factor(Gamma)
+    #     beta = self.Beta(Gamma)
+    #     tau_free = self.Optical_depth(Gamma,co_Volume,Radius,free)
+    #     #tau_trap = self.Optical_depth(Gamma,co_Volume,Radius,free=False)
+    #     L_dip   = self.Luminosity_dipole(Omega,T)
+    #     L_prop  = self.Luminosity_propeller(Omega,T)
+    #     L_radio = self.Luminosity_radioactivity(co_Time,Gamma)
+    #     L_elect = self.Luminosity_electrons(co_Eint,Gamma,co_Volume,Radius)
+
+    #     sd_acceleration_injection = 1 - np.exp(-tau) #bc sd_wind_injection = np.exp(-tau)
+    #     L1_free = (1 - np.exp(-tau))*L_dip + L_prop + L_radio - L_elect
+
+    #     #L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radio - L_elect
+    #     L2_free = self.EJECTA_heating_efficiency*((1 - np.exp(-tau))*L_dip + L_prop) + L_radio - L_elect
+
+    #     ##########
+    #     ### output
+    #     ##########
+    #     gdot_free = L1_free - Gamma/Doppler * L2_free
+
+    #     gdot_free+= Gamma*Doppler * co_Eint/(3*co_Volume) * 4*np.pi*beta*self.lightspeed*Radius**2
+
+    #     gdot_free/=(self.EJECTA_mass*self.lightspeed**2 + co_Eint)
+
+    #     return np.ascontiguousarray(gdot)
+
+    def co_Eint_dot(self, T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius, free):
         """
         Eq. (15) Sun et al. (2017)
 
@@ -892,13 +1051,16 @@ class GRB(object):
         ##########################
         Doppler = self.Doppler_factor(Gamma)
         beta = self.Beta(Gamma)
+        tau = self.Optical_depth(Gamma,co_Volume,Radius,free)
 
         L_dip   = self.Luminosity_dipole(Omega,T)
         L_prop  = self.Luminosity_propeller(Omega,T)
         L_radio = self.Luminosity_radioactivity(co_Time,Gamma)
         L_elect = self.Luminosity_electrons(co_Eint,Gamma,co_Volume,Radius)
 
-        L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radio- L_elect
+        #L2 = self.EJECTA_heating_efficiency*(L_dip + L_prop) + L_radio- L_elect
+        L2 = self.EJECTA_heating_efficiency*((1 - np.exp(-tau))*L_dip + L_prop) + L_radio- L_elect
+
 
         ##########
         ### output
@@ -928,11 +1090,11 @@ class GRB(object):
     ############################################
     def Initial_conditions(self):
         IC = (self.Omega0,
-              self.EJECTA_co_Time0,
-              self.EJECTA_Gamma0,
-              self.EJECTA_co_Eint0,
-              self.EJECTA_co_Volume0,
-              self.EJECTA_radius0)
+              self.EJECTA_free_co_Time0, self.EJECTA_trap_co_Time0,
+              self.EJECTA_free_Gamma0, self.EJECTA_trap_Gamma0,
+              self.EJECTA_free_co_Eint0, self.EJECTA_trap_co_Eint0,
+              self.EJECTA_free_co_Volume0, self.EJECTA_trap_co_Volume0,
+              self.EJECTA_free_radius0, self.EJECTA_trap_radius0)
         return IC
 
     def Build_RHS(self, Y, T):
@@ -951,7 +1113,7 @@ class GRB(object):
         ## expand variables
         ## these will be of numpy.float type
         ####################################
-        Omega, co_Time, Gamma, co_Eint, co_Volume, Radius = Y
+        Omega, co_Time_free, co_Time_trap, Gamma_free, Gamma_trap, co_Eint_free, co_Eint_trap, co_Volume_free, co_Volume_trap, Radius_free, Radius_trap = Y
 
         ######################################
         ## compute each RHS
@@ -959,15 +1121,20 @@ class GRB(object):
         ######################################
         Omega_dot = self.Omega_dot(Omega,T)
 
-        co_Time_dot = self.co_Time_dot(Gamma)
+        co_Time_dot_free = self.co_Time_dot(Gamma_free)
+        co_Time_dot_trap = self.co_Time_dot(Gamma_trap)
 
-        Gamma_dot = self.Gamma_dot(T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius)
+        Gamma_dot_free = self.Gamma_dot(T, Omega, co_Time_free, Gamma_free, co_Eint_free, co_Volume_free, Radius_free, free=True)
+        Gamma_dot_trap = self.Gamma_dot(T, Omega, co_Time_trap, Gamma_trap, co_Eint_trap, co_Volume_trap, Radius_trap, free=False)
 
-        co_Eint_dot = self.co_Eint_dot(T, Omega, co_Time, Gamma, co_Eint, co_Volume, Radius)
+        co_Eint_dot_free = self.co_Eint_dot(T, Omega, co_Time_free, Gamma_free, co_Eint_free, co_Volume_free, Radius_free, free=True)
+        co_Eint_dot_trap = self.co_Eint_dot(T, Omega, co_Time_trap, Gamma_trap, co_Eint_trap, co_Volume_trap, Radius_trap, free=False)
 
-        co_Volume_dot = self.co_Volume_dot(Gamma,Radius)
+        co_Volume_dot_free = self.co_Volume_dot(Gamma_free,Radius_free)
+        co_Volume_dot_trap = self.co_Volume_dot(Gamma_trap,Radius_trap)
 
-        Radius_dot = self.Radius_dot(Gamma)
+        Radius_dot_free = self.Radius_dot(Gamma_free)
+        Radius_dot_trap = self.Radius_dot(Gamma_trap)
 
         ##########################################################
         ## repack and return
@@ -980,9 +1147,12 @@ class GRB(object):
         ##
         ## Rem: be careful to the order of the variables !
         ##########################################################
-        out = (float(Omega_dot), float(co_Time_dot),
-               float(Gamma_dot), float(co_Eint_dot),
-               float(co_Volume_dot), float(Radius_dot))
+        out = (float(Omega_dot),
+               float(co_Time_dot_free), float(co_Time_dot_trap),
+               float(Gamma_dot_free), float(Gamma_dot_trap),
+               float(co_Eint_dot_free), float(co_Eint_dot_trap),
+               float(co_Volume_dot_free), float(co_Volume_dot_trap),
+               float(Radius_dot_free), float(Radius_dot_trap))
         return out
 
     def Time_integration(self,time):
@@ -991,10 +1161,11 @@ class GRB(object):
 
         """
         Y0 = self.Initial_conditions()
+
         sol = odeint(self.Build_RHS, Y0, time)
 
-        (self.Omega, self.co_Time, self.Gamma, self.co_Eint,
-        self.co_Volume, self.Radius) = sol.T
+        (self.Omega, self.co_Time_free, self.co_Time_trap, self.Gamma_free, self.Gamma_trap, self.co_Eint_free, self.co_Eint_trap,
+        self.co_Volume_free, self.co_Volume_trap, self.Radius_free, self.Radius_trap) = sol.T
 
 
     ##################################
@@ -1038,9 +1209,9 @@ class GRB(object):
 
         """
         Doppler = self.Doppler_factor(Gamma)
-        prefactor = Doppler**2 * 4e49*self.EJECTA_mass/1e-2/self.Msun
+        prefactor = Doppler**2 * 4e49*self.EJECTA_dyn_mass/1e-2/self.Msun
 
-        out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_co_T0)/self.EJECTA_co_TSIGMA))**1.3
+        out = (0.5 - 1./np.pi*np.arctan((cotime-self.EJECTA_trap_co_T0)/self.EJECTA_co_TSIGMA))**1.3
         out*=prefactor
 
         return out
@@ -1050,14 +1221,15 @@ class GRB(object):
         Eq. (20) Sun (2017)
 
         """
+        free = False
         Doppler = self.Doppler_factor(Gamma)
-        tau = self.Optical_depth(Gamma,Volume,Radius)
+        tau_trap = self.Optical_depth(Gamma,Volume,Radius,free)
 
-        where_ejecta_thin = tau<=1
+        where_ejecta_thin = tau_trap<=1
 
-        out = Doppler**2 * Eint*self.lightspeed*Gamma/(tau*Radius)
+        out = Doppler**2 * Eint*self.lightspeed*Gamma/(tau_trap*Radius)
 
-        out[where_ejecta_thin]*= tau[where_ejecta_thin]
+        out[where_ejecta_thin]*= tau_trap[where_ejecta_thin]
 
         return out
         
@@ -1101,25 +1273,88 @@ class GRB(object):
         out = Gamma*(1. - self.Beta(Gamma)*np.cos(self.EJECTA_theta))
         return 1./out
 
-    def Optical_depth(self,Gamma,Volume,Radius):
+    # def Optical_depth_free(self,Gamma,Volume,Radius):
+    #     """
+    #         2 components of the ejecta contribute to the opacity: the dynamical ejecta and post-merger ejecta
+    #     """
 
-        out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
-        #out*= self.EJECTA_opacity_tanaka
-        out*= self.EJECTA_opacity_tanaka
+    #     # out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
+    #     # out*= self.EJECTA_opacity
+
+    #     #out*= self.EJECTA_opacity_tanaka
+    #     out = ((self.EJECTA_mass/10)/Volume)*(Radius/Gamma) #Estimated mass fraction to go in free 1/10
+    #     out*= self.EJECTA_opacity #* 26.56/360
+    #     # mass_dyn =
+    #     # mass_post =
+    #     # opacity_tot = opacity_dyn * mass_dyn + opacity_post * mass_post
+    #     # opacity_tot/= mass_dyn + mass_post # The resulting opacity is the weighted mean of the dynamical and post-merger ejecta
+
+    #     # out = ((mass_dyn + mass_post)/Volume)*(Radius/Gamma)
+    #     # out*= opacity_tot
+
+    #     return np.ascontiguousarray(out)
+
+    def Optical_depth(self,Gamma,Volume,Radius,free):
+        """
+            2 components of the ejecta contribute to the opacity: the dynamical ejecta (trapped only) and post-merger ejecta
+        """
+
+        # out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
+        # #out*= self.EJECTA_opacity_tanaka
+        # out*= self.EJECTA_opacity#_tanaka
+
+        # if free == True:
+        #     out = ((self.EJECTA_mass/10)/Volume)*(Radius/Gamma) #Estimated mass fraction to go in free 1/10
+        #     out*= self.EJECTA_opacity_tanaka_free
+        # else:
+        # out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
+        # out*= self.EJECTA_opacity
+
+                # mass_dyn =
+        # mass_post =
+        if free == True: # In the free zone, only the dynamical ejecta is present, in 1/10 of the total dynamical ejecta mass
+            out = (self.EJECTA_dyn_mass/Volume)*(Radius/Gamma)
+            out*= self.EJECTA_dyn_opacity
+
+        else:
+            # opacity_dyn = Eval_opacity(Ye_dyn)
+            self.EJECTA_post_opacity = tidal_deformability.opacity_interpolate(self.EJECTA_post_Ye)
+            self.EJECTA_post_opacity_units = 'cm^2/g'
+            # opacity_tot = self.EJECTA_dyn_opacity * self.EJECTA_dyn_mass + self.EJECTA_dyn_opacity * self.EJECTA_post_mass
+            # opacity_tot/= self.EJECTA_dyn_mass + self.EJECTA_post_mass # The resulting opacity is the weighted mean of the dynamical and post-merger ejecta
+            #print("Opacity free zone: " + str(self.EJECTA_dyn_opacity))
+            opacity_tot = self.EJECTA_dyn_opacity * self.EJECTA_dyn_mass + self.EJECTA_post_opacity * self.EJECTA_post_mass
+            opacity_tot/= self.EJECTA_dyn_mass + self.EJECTA_post_mass
+            #print("Opacity trapped zone: " + str(opacity_tot))
+            out = ((self.EJECTA_dyn_mass + self.EJECTA_post_mass)/Volume)*(Radius/Gamma)
+            #out = (self.EJECTA_dyn_mass/Volume)*(Radius/Gamma)
+            out*= opacity_tot
+
 
         return np.ascontiguousarray(out)
+
+
+    # def Optical_depth_trap(self,Gamma,Volume,Radius):
+    #     """
+    #         2 components of the ejecta contribute to the opacity: the dynamical ejecta and post-merger ejecta
+    #     """
+    #     out = (self.EJECTA_mass/Volume)*(Radius/Gamma)
+    #     out*= self.EJECTA_opacity * (1 - 26.56/360)
+
+    #     return np.ascontiguousarray(out)
 
 
     def Temperature(self,Gamma,Eint,Volume,Radius):
         """
         Black-Body temperature (Sun et al. 2017)
         """
-        tau = self.Optical_depth(Gamma,Volume,Radius)
-        where_ejecta_thin = tau<=1
+        free = False
+        tau_trap = self.Optical_depth(Gamma,Volume,Radius,free)
+        where_ejecta_thin = tau_trap<=1
 
-        out = (Eint / self.radiation_const / Volume / tau)**(0.25)
+        out = (Eint / self.radiation_const / Volume / tau_trap)**(0.25)
 
-        out[where_ejecta_thin] *= tau[where_ejecta_thin]**(0.25)
+        out[where_ejecta_thin] *= tau_trap[where_ejecta_thin]**(0.25)
 
         return out
 
@@ -1142,11 +1377,14 @@ class GRB(object):
         """
         X-Ray luminosity from dipole spindown and propeller
         """
-
+        free = True
         self.L_dip = self.Luminosity_dipole(self.Omega,T)
         self.L_prop = self.Luminosity_propeller(self.Omega,T)
         self.LX_free = (self.NS_eta_dip    * self.L_dip +
                         self.DISK_eta_prop * self.L_prop)
+        tau_free = self.Optical_depth(self.Gamma_free,self.co_Volume_free,self.Radius_free,free) #* 26.56/360
+        #print(tau)
+        self.LX_free = np.exp(-tau_free) * self.LX_free
 
         self.L_dip_units   = 'ergs/s'
         self.L_prop_units  = 'ergs/s'
@@ -1176,11 +1414,11 @@ class GRB(object):
         ##################
         ### precalculation
         ##################
-        Doppler = self.Doppler_factor(self.Gamma)
-        Temp = self.Temperature(self.Gamma,self.co_Eint,
-                                self.co_Volume,self.Radius)
+        Doppler = self.Doppler_factor(self.Gamma_trap)
+        Temp = self.Temperature(self.Gamma_trap,self.co_Eint_trap,
+                                self.co_Volume_trap,self.Radius_trap)
 
-        prefactor = 8. * (np.pi * Doppler * self.Radius)**2
+        prefactor = 8. * (np.pi * Doppler * self.Radius_trap)**2
         prefactor/= self.hPlanck**3 * self.lightspeed**2
 
         ########################
@@ -1225,8 +1463,9 @@ class GRB(object):
         X-Ray luminosity from trapped zone
         (Sun et al. 2017)
         """
-        tau = self.Optical_depth(self.Gamma,self.co_Volume,self.Radius)
-        L_wind = np.exp(-tau) * self.LX_free
+        free = False
+        tau_trap = self.Optical_depth(self.Gamma_trap,self.co_Volume_trap,self.Radius_trap,free)
+        L_wind = np.exp(-tau_trap) * self.LX_free
 
         ####################################
         #################
@@ -1291,13 +1530,15 @@ class GRB(object):
         self.Mdot = self.Accretion_rate(T)
         self.fast = (self.r_mag / self.r_cor)**1.5
         self.beta = self.E_rot(Omega)/abs(self.E_bind())
-        self.tau  = self.Optical_depth(self.Gamma,
-                                       self.co_Volume,self.Radius)
-        self.Temp = self.Temperature(self.Gamma,self.co_Eint,
-                                     self.co_Volume,self.Radius)
-        self.L_elect = self.Luminosity_electrons(self.co_Eint,self.Gamma,
-                                                 self.co_Volume,self.Radius)
-        self.L_radio = self.Luminosity_radioactivity(self.co_Time,self.Gamma)
+        self.tau_free  = self.Optical_depth(self.Gamma_trap,
+                                       self.co_Volume_free,self.Radius_free,free=True)
+        self.tau_trap  = self.Optical_depth(self.Gamma_free,
+                                       self.co_Volume_trap,self.Radius_trap,free=False)
+        self.Temp = self.Temperature(self.Gamma_trap,self.co_Eint_trap,
+                                     self.co_Volume_trap,self.Radius_trap)
+        self.L_elect = self.Luminosity_electrons(self.co_Eint_trap,self.Gamma_trap,
+                                                 self.co_Volume_trap,self.Radius_trap)
+        self.L_radio = self.Luminosity_radioactivity(self.co_Time_trap,self.Gamma_trap)
 
         self.Mdot_units = 'g/s'
         self.fast_units = ''
@@ -1330,9 +1571,9 @@ class GRB(object):
 
         ax[0].loglog(T,self.LX_free,'r-',linewidth=3.0,label=r'$L_{\rm x,free}$')
         ax[0].loglog(T,self.LX_trap,'b--',linewidth=3.0,label=r'$L_{\rm x,trap}$')
-        ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_{\rm dip}$')
+        #ax[0].loglog(T,self.L_dip,'k-.',label=r'$L_{\rm dip}$')
         ax[0].loglog(T,self.L_prop,'g:',label=r'$L_{\rm prop}$')
-        ax[0].loglog(T,self.L_pure_dip,'y-',label=r'$L_{\rm dip,th}$')
+        #ax[0].loglog(T,self.L_pure_dip,'y-',label=r'$L_{\rm dip,th}$')
 
         ax[1].loglog(T,self.L_dip+self.L_prop,ls='-',linewidth=3,label=r'$L_{\rm sd}$',color='m')
         ax[1].loglog(T,self.L_radio,ls='--',linewidth=3,label=r'$L_{\rm radioactivity}$',color='k')
@@ -1352,12 +1593,14 @@ class GRB(object):
         ### set axis limits by hand...
         ##############################
         #ax.set(xlim=[1.,1e5],ylim=[1e42,1e52])
+        ax[1].set(xlim=[1.,1e5],ylim=[1e42,1e52])
+        ax[0].set(xlim=[1.,1e5],ylim=[1e42,1e52])
 
         plt.tight_layout()
         if savefig:
             ## implement specific filename generator
             ## here if needed
-            plt.savefig(filename)
+            plt.savefig(filename, dpi=400)
         return fig,ax
 
     def PlotRadii(self,T):
@@ -1386,20 +1629,83 @@ class GRB(object):
         print ('Adjusting PlotRadii axes')
         ax.set(xlim=[1.,1e5],ylim=[1e6,1e9])
 
-        plt.tight_layout()
 
-        ### Plot of the beta parameter
+    def PlotBeta(self, T,
+                    savefig=False,
+                    filename='beta.pdf'):
+
+        ## Plot of the beta parameter
         #ax.figure(3)
-        #ax.loglog(T,self.beta)
-        #ax.ylabel(r'$\beta$')
-        #ax.xlabel(r'time [s]')
+        #beta_v = Beta()
+        plt.loglog(T,self.Gamma_trap)
+        plt.ylabel(r'$\beta$')
+        plt.xlabel(r'time [s]')
 
-        ### vlines
-        #plt.axvline(self.T_em,label=r'$T_{em}$',ls='--',color='gray')
-        #plt.axvline(self.T0,label=r'$T_0$',ls='-',color='gray')
-        #plt.axvline(self.Tc,label=r'$T_c$',ls='--',color='r')
-        ### hlines
+
+        ## vlines
+        # plt.axvline(self.T_em,label=r'$T_{em}$',ls='--',color='gray')
+        # plt.axvline(self.T0,label=r'$T_0$',ls='-',color='gray')
+        # plt.axvline(self.Tc,label=r'$T_c$',ls='--',color='r')
+        ## hlines
         #plt.axhline(self.L_em0,label=r'$L_{em,0}$',ls='--',color='gray')
+        plt.tight_layout()
+        if savefig:
+            ## implement specific filename generator
+            ## here if needed
+            plt.savefig(filename, dpi=400)
+
+        plt.show()
+
+
+    def Energy_kin_ejecta(self):
+        E = (np.max(self.Gamma_free)-1) * self.EJECTA_dyn_mass * self.lightspeed**2
+        print("Injected kinetic energy in ejecta: " + str(E) + "erg.")
+        return E
+
+    def Energy_reservoir(self):
+        E = 1/2 * self.EOS_I * self.Omega0**2
+        print("Energy reservoir: " + str(E) + "erg.")
+        return E
+
+
+    def Test_energies(self):
+
+        def Luminosities(t0, tF, samples=1000):
+            times = np.linspace(t0, tF, samples)
+
+            Y0 = self.Initial_conditions()
+            sol = odeint(self.Build_RHS, Y0, times)
+
+            (iOmega, _, _, iGamma_free, iGamma_trap, _, _, iVolume_free, iVolume_trap, iRadius_free, iRadius_trap) = sol.T
+
+            #LX_free
+            L_dip = self.Luminosity_dipole(iOmega, times)
+            L_prop = self.Luminosity_propeller(iOmega, times)
+            LX_free = (self.NS_eta_dip * L_dip +
+                            self.DISK_eta_prop * L_prop)
+            tau_free = self.Optical_depth(iGamma_free,iVolume_free,iRadius_free,free=True)
+            LX_free = np.exp(-tau_free) * LX_free
+            #LX_trap
+            tau_trap = self.Optical_depth(iGamma_trap,iVolume_trap,iRadius_trap,free=False)
+            L_wind = np.exp(-tau_trap) * LX_free
+            L_bb = self.Integrate_blackbody(keV_min=0.3,keV_max=6.,samples=samples)
+            LX_trap = L_wind + L_bb
+
+            L_tot = LX_free + LX_trap
+            return L_tot
+
+        t0 = 0
+        tF = 10e3 #10e5
+        y = Luminosities(t0, tF) #, limit=199
+        Energy_tot = np.sum(y) * (tF-t0)/len(y)
+        #Energy_tot_quad = integrate.quad(Luminosities, t0, tF)
+        print("And integrated luminosities (to check the new I expression), which should be equal or lower: " + str(Energy_tot) + "erg.")
+        #print("Please be also equal to: " + str(Energy_tot_quad) + "erg.")
+
+        return Energy_tot
+
+
+
 
     def WriteTable(self,
                    filename=None,
@@ -1499,16 +1805,16 @@ if __name__=='__main__':
 
 
 #     #GRBname = 'GRB061006'
-#     GRBname = 'GRB061006prop'
+    #GRBname = 'GRB061006prop'
 
 #     if GRBname == 'GRB061006':
 #         grb = GRB(**GRB_061006,**EOS['GM1'])
 #         grb.PlotLuminosity(grb.time)
 #         grb.PlotRadii(grb.time)
 
-#     if GRBname == 'GRB061006prop':
-#         grb = GRB(**GRB_061006prop,**EOS['DD2'])
-#         fig,ax=grb.PlotLuminosity(grb.time)
+    # if GRBname == 'GRB061006prop':
+    #     grb = GRB(**GRB_061006prop,**EOS['DD2'])
+    #     fig,ax=grb.PlotLuminosity(grb.time)
 #         ## reset axes by hand
 # #        ax = plt.gca()
 # #        for i in np.arange(ax.size):
@@ -1519,3 +1825,29 @@ if __name__=='__main__':
 #         #grb.WriteTable()
 
 #     plt.show()
+
+
+
+    GRB_base = {}
+    GRB_base['NS_period'] = 1e-3
+    GRB_base['NS_B'] = 1e15
+    GRB_base['NS_mass'] = 2.43
+    #GRB_base['EJECTA_Gamma0'] = 1.0
+    # f_ej = 0.3
+    # GRB_base['DISK_mass0'] = (1 - f_ej)*1.e-2
+    # GRB_base['EJECTA_mass'] = f_ej*1.e-2
+
+
+
+    #GRBname = 'GRB061006'
+#     GRBname = 'GRB061006prop'
+    #GRBname = 'GRB_test_I'
+
+    grb = GRB(**GRB_base,**EOS['DD2'], t_num=1000)
+    grb.PlotLuminosity(grb.time, savefig=True, filename='test_free/taufree_corrected_test_2taus.png')
+    # plt.close()
+    # grb.PlotBeta(grb.time, savefig=True, filename='test_tout/taufree.png')
+    plt.show()
+    grb.Energy_kin_ejecta()
+    grb.Energy_reservoir()
+    grb.Test_energies()
